@@ -1,0 +1,70 @@
+<!doctype html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Beekeeper Event Logger</title>
+  <meta name="description" content="Beekeeper event logger">
+  <meta name="author" content="grismar@grismar.net">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+  <!--[if lt IE 9]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  
+  <link rel="shortcut icon" href="/favicon.ico">
+  
+  <script src="jquery.js"></script>
+  <script src="json2.js"></script>
+  <script type="text/javascript">
+  
+    function addmsg(type, msg){
+        /* Simple helper to add a div.
+        type is the name of a CSS class (old/new/error).
+        msg is the contents of the div */
+        $("#events").append(
+            "<pre class=\""+ type +"\">"+ JSON.stringify(msg, undefined, 2) +"</pre>"
+        );
+    }
+
+    function waitForMsg(){
+        /* This requests the url "/events" */
+        $.ajax({
+            type: "GET",
+            url: "/events",
+
+            async: true, /* if set to non-async, browser shows page as "Loading.."*/
+            cache: false,
+            timeout: 10000, /* timeout in ms */
+
+            success: function(data){ /* called when request to /events completes */
+                if (data!=null) {
+                  addmsg("new", data); /* add non-empty response to a .msg div (with the "new" class)*/
+                }
+                setTimeout(
+                    waitForMsg, 0/* request next message immediately */
+                );
+            },
+            
+            error: function(XMLHttpRequest, textStatus, errorThrown){
+                addmsg("error", textStatus + " (" + errorThrown + ")");
+                setTimeout(
+                    waitForMsg, /* try again after.. */
+                    5000); /* milliseconds (5 seconds) */
+            }
+        });
+    };
+
+    $(document).ready(function(){
+        waitForMsg(); /* start the inital request */
+    });
+  
+  </script>
+</head>
+<body>
+  <div id="events"></div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+﻿<!doctype html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Beekeeper</title>
+  <meta name="description" content="Beekeeper basic info, landing page">
+  <meta name="author" content="grismar@grismar.net">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <link rel="stylesheet" href="/_base.css">
+  <link rel="stylesheet" href="/skeleton.css">
+  <link rel="stylesheet" href="/layout.css">
+    
+  <!--[if lt IE 9]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link rel="shortcut icon" href="/favicon.ico">
+</head>
+<body>
+  <div class="container">
+    <div class="sixteen columns">
+      <h1>Beekeeper</h1>
+    </div>
+    <div class="sixteen columns">
+      <div class="four columns alpha">
+        <p>
+          <img src="/beekeeper.ico" style="width: 80%" />
+        </p>
+        <p>
+          <a href="/">Home</a>
+        </p>
+        <p>
+          <a href="/#hybriddsp">HybridDSP.Net.dll</a>
+        </p>
+        <p>
+          <a href="/#howtouse">How to use</a>
+        </p>
+        <p>
+          <a href="http://grismar.net/beekeeper">grismar.net/beekeeper</a>
+        </p>
+      </div>
+      <div class="twelve columns omega">
+        <p>
+          Your Beekeeper plugin is running and just served you this page.
+        </p>
+        <p>
+          The Beekeeper plugin is an embedded web server for Musicbee. It exposes most of the Musicbee API as an http interface, or a web API. Using the web API is easy for programmers in non-.Net languages. You can even directly access the API itself from your browser!
+        </p>
+        <p>
+          To make things more convenient, the Beekeeper plugin can also serve up files you put in the Musicbee persistent storage folder. If the folder doesn't exist, just create it and put any files you need served there. If you don't know where the folder should be, try visiting <a href="/file/fakename">/file/fakename</a> and the error message will tell you where to look.
+        </p>
+        <p>
+          The current version of Beekeeper supports MusicBee API revision 43. To see if everything is working as it should be, or to find out how you can use the API yourself, put the "test" folder in the persistent storage folder and then visit it at <a href="/file/test/index.html">/file/test/index.html</a>. Please check the contents of the folder for more information and make sure you have the version matching the running Beekeeper version.
+        </p>
+        <p>
+          <a href="/">Home</a>
+        </p>
+        <h2 id="howtouse">
+          How to use
+        </h2>
+        <p>
+          One way to use the Beekeeper plugin is to write your own web interface for Musicbee, or perhaps write an application in another language that uses the web API. Another way is to look for someone who did just that and is making the result available for you to use. For example, you could use the Beekeeper Android app.
+        </p>
+        <h3>Beekeeper app</h3>
+        <p>
+
+        </p>
+        <h3>Web API</h3>
+        <p>
+          The Web API consists of two important parts: MusicBee event notifications and MusicBee methods. You can retrieve recent event notifications at <a href="/events">/events</a>. It returns a serialized JSON object containing all of the events notifications since the last request for <a href="/events">/events</a>. If no notifications are available, Beekeeper will wait for a maximum of 5 seconds and if an event occurs in those 5 seconds, it will immediately respond. By chaining requests for <a href="/events">/events</a> together, you can make sure you always have the most recent events. For more details on notifications, see the "test" folder. The methods of the MusicBee API can be called by posting to the appropriate URL, with parameters in a stringified JSON object. For example, you can visit <a href="http://localhost:8080/Player_PlayPause">/Player_PlayPause</a> to play or pause the current track and it will return "null", since there is no function result for the method. Try  For more complicated examples, see the "test" folder. You'll also find a Javascript library in there with a convenient object that takes care of the plumbing, if you're using <a href="http://jquery.com/">jQuery</a>.
+        </p>
+        <h2 id="hybriddsp">
+          HybridDSP.Net.dll
+        </h2>
+        <p>
+          Beekeeper uses the freely available HybridDSP.Net component from <a href="http://www.hybridgeotools.com">Hybrid Geotools</a>. More information about its use in this <a href="http://www.codeproject.com/Articles/20445/C-Customizable-Embedded-HTTPServer">article on CodeProject</a>. The source of HybridDSP is included with Beekeeper.
+        </p>
+        <p>
+          You may come across alarming messages online that claim HybridDSP is something evil, hell-bent on destroying your PC. If you're worried, feel free to read the source files. You can even compile the source yourself, using Microsoft's Visual Studio Community edition and use the resulting .dll file instead of the one packaged with Beekeeper. The alarming messages online are probably due to someone using HybridDSP.Net as a part of some malware, but the component itself is fine. Note: Hybrid Geotools have nothing to do with Beekeeper or Musicbee, they were just friendly enough to share their software component.
+        </p>
+        <p>
+          <a href="/">Home</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
