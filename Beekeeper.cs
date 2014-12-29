@@ -44,7 +44,7 @@ namespace MusicBeePlugin
     /// For more on long polling see <see href="http://tools.ietf.org/html/draft-loreto-http-bidirectional-07">this article</see> or just
     /// Google around for available information on 'long polling', there's lots.
     /// </remarks>
-    public class BeekeeperServer
+    public class BeekeeperServer : IDisposable
     {
         /// <summary>
         /// A reference to the mbApiInterface to pass calls on to MusicBee and retrieve information.
@@ -109,7 +109,7 @@ namespace MusicBeePlugin
 
         private bool _ReadOnly;
         /// <summary>
-        /// The ReadOnly property locks and unlocks methods that can modify the MusicBee database.
+        /// The ReadOnly property locks and unlocks methods that can modify the MusicBee database, or files.
         /// </summary>
         public bool ReadOnly
         {
@@ -388,6 +388,8 @@ namespace MusicBeePlugin
             public string[] deletedFiles;
         }
 
+        public Plugin.PluginInfo about = new Plugin.PluginInfo();
+
         /// <summary>
         /// The event type for handling requests to call the API.
         /// </summary>
@@ -423,6 +425,7 @@ namespace MusicBeePlugin
             string errorMessage;
             string url;
             string targetFolder;
+            string parameterName;
             string[] filenames;
             string[] sourcefileUrls;
             string[] urls;
@@ -473,6 +476,18 @@ namespace MusicBeePlugin
                     case "Setting_GetPersistentStoragePath": // string ()
                         result = mbApiInterface.Setting_GetPersistentStoragePath();
                         break;
+                    // not canon, retrieves Beekeeper specific setting
+                    case "Setting_GetReadOnly_BK": // boolean ()
+                        result = ReadOnly;
+                        break;
+                    // not canon, retrieves Beekeeper specific setting
+                    case "Setting_GetShare_BK": // boolean ()
+                        result = Share;
+                        break;
+                    // not canon, retrieves Beekeeper specific setting
+                    case "Setting_GetVersion_BK": // int[] ()
+                        result = new int[3] { about.VersionMajor, about.VersionMinor, about.Revision };
+                        break;
                     case "Setting_GetSkin": // string ()
                         result = mbApiInterface.Setting_GetSkin();
                         break;
@@ -508,7 +523,7 @@ namespace MusicBeePlugin
                         }
                         else
                         {
-                            result = false;
+                            result = null;
                         }
                         break;
                     case "Library_CommitTagsToFile": // bool (string sourceFileUrl)
@@ -519,7 +534,7 @@ namespace MusicBeePlugin
                         }
                         else
                         {
-                            result = false;
+                            result = null;
                         }
                         break;
                     case "Library_GetLyrics": // string (string sourceFileUrl, LyricsType type)
@@ -791,16 +806,13 @@ namespace MusicBeePlugin
                         result = mbApiInterface.Player_GetReplayGainMode();
                         break;
                     case "Player_SetReplayGainMode": // bool (ReplayGainMode mode/replayGain)
-                        if (parameters.ContainsKey("mode"))
-                        {
+                        if (parameters.ContainsKey("mode")) 
                             // canon, deviates from normal naming scheme
-                            replayGain = (Plugin.ReplayGainMode)parameters["mode"];
-                        }
+                            parameterName = "mode"; 
                         else
-                        {
                             // not canon, but fits normal naming scheme
-                            replayGain = (Plugin.ReplayGainMode)parameters["replayGain"];
-                        }
+                            parameterName = "replayGain"; 
+                        replayGain = (Plugin.ReplayGainMode)parameters[parameterName];
                         result = mbApiInterface.Player_SetReplayGainMode(replayGain);
                         break;
                     case "Player_QueueRandomTracks": // int (int count)
@@ -860,19 +872,53 @@ namespace MusicBeePlugin
                         result = mbApiInterface.Playlist_GetName(playlistUrl);
                         break;
                     case "Playlist_CreatePlaylist": // string (string folderName, string playlistName, string[] filenames)
-                        folderName = (string)parameters["folderName"];
-                        playlistName = (string)parameters["playlistName"];
-                        filenames = (string[])parameters["filenames"];
-                        result = mbApiInterface.Playlist_CreatePlaylist(folderName, playlistName, filenames);
+                        if (!ReadOnly)
+                        {
+                            folderName = (string)parameters["folderName"];
+                            playlistName = (string)parameters["playlistName"];
+                            if (parameters.ContainsKey("fileNames"))
+                            {
+                                // canon, deviates from normal naming scheme
+                                parameterName = "fileNames";
+                            }
+                            else
+                            {
+                                // not canon, but fits normal naming scheme
+                                parameterName = "filenames";
+                            }
+                            filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
+                            result = mbApiInterface.Playlist_CreatePlaylist(folderName, playlistName, filenames);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
                     case "Playlist_SetFiles": // bool (string playlistUrl, filenames)
-                        playlistUrl = (string)parameters["playlistUrl"];
-                        filenames = (string[])parameters["filenames"];
-                        result = mbApiInterface.Playlist_SetFiles(playlistUrl, filenames);
+                        if (!ReadOnly)
+                        {
+                            playlistUrl = (string)parameters["playlistUrl"];
+                            if (parameters.ContainsKey("fileNames"))
+                            {
+                                // canon, deviates from normal naming scheme
+                                parameterName = "fileNames";
+                            }
+                            else
+                            {
+                                // not canon, but fits normal naming scheme
+                                parameterName = "filenames";
+                            }
+                            filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
+                            result = mbApiInterface.Playlist_SetFiles(playlistUrl, filenames);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
                     case "Library_QuerySimilarArtists": // string (string artistName, double minimumArtistSimilarityRating)
                         artistName = (string)parameters["artistName"];
-                        minimumArtistSimilarityRating = (double)parameters["minimumArtistSimilarityRating"];
+                        minimumArtistSimilarityRating = Convert.ToDouble(parameters["minimumArtistSimilarityRating"]);
                         result = mbApiInterface.Library_QuerySimilarArtists(artistName, minimumArtistSimilarityRating);
                         break;
                     case "Library_QueryLookupTable": // bool (string keyTags, string valueTags, string query)
@@ -887,28 +933,22 @@ namespace MusicBeePlugin
                         break;
                     case "NowPlayingList_QueueFilesNext": // bool (string[] sourcefileUrl/sourcefileUrls)
                         if (parameters.ContainsKey("sourcefileUrl"))
-                        {
                             // canon, deviates from normal naming scheme
-                            sourcefileUrls = (string[])parameters["sourcefileUrl"];
-                        }
+                            parameterName = "sourcefileUrl";
                         else
-                        {
                             // not canon, but fits normal naming scheme
-                            sourcefileUrls = (string[])parameters["sourcefileUrls"];
-                        }
+                            parameterName = "sourcefileUrls";
+                        sourcefileUrls = (string[])parameters[parameterName];
                         result = mbApiInterface.NowPlayingList_QueueFilesNext(sourcefileUrls);
                         break;
                     case "NowPlayingList_QueueFilesLast": // bool (string[] sourcefileUrl/sourcefileUrls)
                         if (parameters.ContainsKey("sourcefileUrl"))
-                        {
                             // canon, deviates from normal naming scheme
-                            sourcefileUrls = (string[])parameters["sourcefileUrl"];
-                        }
+                            parameterName = "sourcefileUrl";
                         else
-                        {
                             // not canon, but fits normal naming scheme
-                            sourcefileUrls = (string[])parameters["sourcefileUrls"];
-                        }
+                            parameterName = "sourcefileUrls";
+                        sourcefileUrls = (string[])parameters[parameterName];
                         result = mbApiInterface.NowPlayingList_QueueFilesLast(sourcefileUrls);
                         break;
             // api version 20
@@ -944,15 +984,12 @@ namespace MusicBeePlugin
                         artistName = (string)parameters["artistName"];
                         fadingPercent = (int)parameters["fadingPercent"];
                         if (parameters.ContainsKey("fadingColour"))
-                        {
-                            // not canon, but fits British preference
-                            fadingColor = (int)parameters["fadingColour"];
-                        }
+                            // canon, deviates from normal naming scheme
+                            parameterName = "fadingColour";
                         else
-                        {
-                            // canon, deviates from British preference
-                            fadingColor = (int)parameters["fadingColor"];
-                        }
+                            // not canon, but fits normal naming scheme
+                            parameterName = "fadingColor";
+                        fadingColor = (int)parameters[parameterName];
                         result = mbApiInterface.Library_GetArtistPicture(artistName, fadingPercent, fadingColor);
                         break;
                     case "Pending_GetFileUrl": // string ()
@@ -960,15 +997,12 @@ namespace MusicBeePlugin
                         break;
                     case "Pending_GetFileProperty": // string (FilePropertyType field/type)
                         if (parameters.ContainsKey("type"))
-                        {
-                            // not canon, but fits normal naming scheme
-                            fptype = (Plugin.FilePropertyType)parameters["type"];
-                        }
-                        else
-                        {
                             // canon, deviates from normal naming scheme
-                            fptype = (Plugin.FilePropertyType)parameters["field"];
-                        }
+                            parameterName = "type";
+                        else
+                            // not canon, but fits normal naming scheme
+                            parameterName = "field";
+                        fptype = (Plugin.FilePropertyType)parameters[parameterName];
                         result = mbApiInterface.Pending_GetFileProperty(fptype);
                         break;
                     case "Pending_GetFileTag": // string (MetaDataType field)
@@ -1380,11 +1414,36 @@ namespace MusicBeePlugin
 
             tempUrls = new HashSet<string>();
         }
-        
+
+        // Flag: Has Dispose already been called? 
+        bool disposed = false;
+
+        // Public implementation of Dispose pattern callable by consumers. 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern. 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                Stop();
+                server.Dispose();
+            }
+        }
+
+/*      replaced with the above implementation of IDisposable
+ * 
         ~BeekeeperServer()
         {
             Stop();
-        }
+        } */
 
         /// <summary>
         /// Stop the server.
@@ -1541,8 +1600,8 @@ namespace MusicBeePlugin
             about.Author = "grismar@grismar.net";
             about.TargetApplication = "";
             about.Type = PluginType.General;
-            about.VersionMajor = 0;  // plugin version
-            about.VersionMinor = 1;
+            about.VersionMajor = 1;  // plugin version
+            about.VersionMinor = 0;
             about.Revision = 1;
             about.MinInterfaceVersion = MinInterfaceVersion;
             about.MinApiRevision = MinApiRevision;
@@ -1553,6 +1612,7 @@ namespace MusicBeePlugin
             settings = new PluginSettings(mbApiInterface.Setting_GetPersistentStoragePath());
             // create a beekeeper server
             beekeeperServer = new BeekeeperServer(apiInterfacePtr);
+            beekeeperServer.about = about;
 
             return about;
         }

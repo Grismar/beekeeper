@@ -186,6 +186,8 @@ var Beekeeper = {
         Rating: 3
     },
 
+    basePath: "/",
+
     /**
      * Generic Call function, invokes method 'name' with data 'input' and calls 'callback' function with output data
      * @param {string} name Name of method to be called
@@ -194,7 +196,7 @@ var Beekeeper = {
      */
     Call: function(name, input, callback) {
         $.ajax({
-	        url: "/"+name,
+	        url: this.basePath + name,
 	        type: "POST",
 	        data: JSON.stringify(input),
 	        processData: false,
@@ -218,6 +220,49 @@ var Beekeeper = {
 	        {},
 	        callback
 	    );
+    },
+
+    /**
+     * Retrieves whether the Beekeeper plugin is configured to be 'read only', won't modify the MusicBee library or
+     * write specific local files.
+     * Setting_GetReadOnly_BK (function (boolean) callback)
+     * Note: not part of the original MusicBee Plugin API (not canon), retrieves Beekeeper-specific setting.
+     * @param {function} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Setting_GetReadOnly_BK: function(callback) {
+        this.Call(
+            'Setting_GetReadOnly_BK',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves whether the Beekeeper plugin is configured to serve files from the MusicBee persistent storage folder.
+     * Setting_GetShare_BK (function (boolean) callback)
+     * Note: not part of the original MusicBee Plugin API (not canon), retrieves Beekeeper-specific setting.
+     * @param {function} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Setting_GetShare_BK: function(callback) {
+        this.Call(
+            'Setting_GetShare_BK',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the Beekeeper plugin version as an array of [major, minor, revision] integers.
+     * Setting_GetVersion_BK (function (int[]) callback)
+     * Note: not part of the original MusicBee Plugin API (not canon), retrieves Beekeeper-specific setting.
+     * @param {function} callback Callback function for method, expecting a (int[]) JSON object
+     */
+    Setting_GetVersion_BK: function(callback) {
+        this.Call(
+            'Setting_GetVersion_BK',
+            {},
+            callback
+        )
     },
 
     /**
@@ -307,6 +352,7 @@ var Beekeeper = {
 
     /**
      * Sets a single metadata field (tag) for the given source file. Success is reported to callback.
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
      * Library_SetFileTag (string sourceFileUrl, MetaDataType field, object value,
      *   function (boolean) callback)
      * @param {string} sourceFileUrl Path to music file in database
@@ -324,6 +370,7 @@ var Beekeeper = {
 
     /**
      * Commits changes to tags on a source file to the file. Success is reported to callback.
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
      * Library_CommitTagsToFile (string sourceFileUrl, function (boolean) callback)
      * @param {string} sourceFileUrl Path to music file in database
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
@@ -1351,6 +1398,81 @@ var Beekeeper = {
         this.Call(
             'Player_GetShowRatingLove',
             {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the Last.fm user id configured in MusicBee, if any.
+     * Setting_GetLastFmUserId (function (string) callback)
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Setting_GetLastFmUserId: function (callback) {
+        this.Call(
+            'Setting_GetLastFmUserId',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Get the name of a specific playlist by providing the path name/url.
+     * @param {string} playlistUrl Location of playlist (from MusicBee local perspective).
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Playlist_GetName: function (playlistUrl, callback) {
+        this.Call(
+            'Playlist_GetName',
+            { playlistUrl: playlistUrl },
+            callback
+        )
+    },
+
+    /**
+     * Create a new playlist in a playlist folder, given an array of filename for files/tracks.
+     * Passes the playlistUrl to callback (from MusicBee local perspective).
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
+     * @param {string} folderName Name of 'folder' in the MusicBee Playlists (not a file system folder).
+     * @param {string} playlistName Name for playlist.
+     * @param {string[]} fileNames Array of fileNames for files/tracks on playlist.
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Playlist_CreatePlaylist: function (folderName, playlistName, fileNames, callback) {
+        this.Call(
+            'Playlist_CreatePlaylist',
+            { folderName: folderName, playlistName: playlistName, fileNames: fileNames },
+            callback
+        )
+    },
+
+    /**
+     * Replaces the files/tracks in a playlist with a new set.
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
+     * Playlist_SetFiles (string playlistUrl, string[] fileNames, function (boolean) callback)
+     * @param {string} playlistUrl The path to the playlist (from MusicBee local perspective).
+     * @param {string[]} fileNames Array of fileNames for files/tracks on playlist.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_SetFiles: function (playlistUrl, fileNames, callback) {
+        this.Call(
+            'Playlist_SetFiles',
+            { playlistUrl: playlistUrl, fileNames: fileNames },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to run a query for similar artist to a given artist, within a specific similarity (0..1).
+     * A list of strings, separated by \0 are passed to callback.
+     * Library_QuerySimilarArtists (string artistName, number minimumArtistSimilarityRating, function (string) callback)
+     * @param {string} artistName The name of the artist for which to find similar artists.
+     * @param {number} minimumArtistSimilarityRating The similarity (0..1) required.
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Library_QuerySimilarArtists: function (artistName, minimumArtistSimilarityRating, callback) {
+        this.Call(
+            'Library_QuerySimilarArtists',
+            { artistName: artistName, minimumArtistSimilarityRating: minimumArtistSimilarityRating },
             callback
         )
     },

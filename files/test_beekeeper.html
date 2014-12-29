@@ -45,6 +45,27 @@
                     function(data){ $("#target_Setting_GetPersistentStoragePath").html( data ); }
             );
 
+            Beekeeper.Setting_GetReadOnly_BK(
+                    function(data){ $("#target_Setting_GetReadOnly_BK").html(
+                            ((data&&data.error)?'error: '+data.error:
+                                    (data?'Beekeeper is ReadOnly':'Beekeeper is not ReadOnly'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetShare_BK(
+                    function(data){ $("#target_Setting_GetShare_BK").html(
+                            ((data&&data.error)?'error: '+data.error:
+                                    (data?'Beekeeper is sharing files':'Beekeeper is not sharing files'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetVersion_BK(
+                    function(data){ $("#target_Setting_GetVersion_BK").html(
+                            ((data&&data.error)?'error: '+data.error:
+                                    (data?'Version '+data[0]+'.'+data[1]+'.'+data[2]:'No version data'))
+                    ); }
+            );
+
             Beekeeper.Setting_GetSkin(
                     function(data){ $("#target_Setting_GetSkin").html( data ); }
             );
@@ -77,8 +98,8 @@
                     Beekeeper.MetaDataType.Comment,
                     'Wonderful!',
                     function(data){ $("#target_Library_SetFileTag").html(
-                            (data&&!data.error)?'comment written':'writing comment failed, read only? '+
-                                    (data.error?data.error:'')
+                            (data===null)?'setting file tag failed, read only?':
+                                    (data?'tag set':'tags not set')
                     ); }
             );
 
@@ -87,8 +108,8 @@
                 Beekeeper.Library_CommitTagsToFile(
                         trackUrl,
                         function(data){ $("#target_Library_CommitTagsToFile").html(
-                                (data&&!data.error)?'commit executed':'commit failed, read only? '+
-                                        (data.error?data.error:'')
+                                (data===null)?'commit failed, read only?':
+                                        (data?'tags committed to file':'tags not committed to file')
                         ); }
                 );
             }
@@ -556,7 +577,7 @@
             function run_NowPlayingList_IsAnyPriorTracks() {
                 Beekeeper.NowPlayingList_IsAnyPriorTracks(
                         function(data){ $("#target_NowPlayingList_IsAnyPriorTracks").html(
-                                (data.error?'error: '+data.error:
+                                (data==null||(data&&data.error)?'error: '+data.error:
                                         (data?'prior tracks to current':'no prior tracks to current'))
                         ); }
                 );
@@ -668,7 +689,7 @@
                 Beekeeper.NowPlaying_GetDownloadedArtworkUrl_BK (
                         function(data){ $("#target_NowPlaying_GetDownloadedArtworkUrl_BK").html(
                                 (data===null)?'no downloaded artwork':
-                                        (!data||data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                                        (data.error?'error: '+data.error:'<img src="'+data+'"/>')
                         ); }
                 );
             }
@@ -687,6 +708,70 @@
                                     (data?'love rating shown':'love rating not shown'))
                     ); }
             );
+
+            Beekeeper.Setting_GetLastFmUserId(
+                    function(data){ $("#target_Setting_GetLastFmUserId").html(
+                            (data===null)?'no Last.fm id':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Playlist_GetName(
+                    playlistUrl,
+                    function(data){ $("#target_Playlist_GetName").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            var createdPlayList = null;
+            function run_Playlist_CreatePlaylist() {
+                Beekeeper.Setting_GetPersistentStoragePath(
+                        function(path){
+                            Beekeeper.Playlist_CreatePlaylist(
+                                    '',
+                                    'test_playlist',
+                                    ['fakeFile_1.mp3', 'fakeFile_2.mp3'],
+                                    function(data){
+                                        $("#target_Playlist_CreatePlaylist").html(
+                                            (data===null)?'not allowed to write playlist (read only? non-existent folder?)':
+                                                    (data.error?'error: '+data.error:data)
+                                        );
+                                        createdPlayList = data;
+                                    }
+                            )
+                        }
+                );
+            }
+            $("#link_Playlist_CreatePlaylist").click(run_Playlist_CreatePlaylist);
+
+            function run_Playlist_SetFiles() {
+                if (createdPlayList==null) {
+                    alert ('Create the playlist first!')
+                } else {
+                    Beekeeper.Playlist_SetFiles(
+                            createdPlayList,
+                            ['fakeFile_3.mp3', 'fakeFile_4.mp3'],
+                            function(data){ $("#target_Playlist_SetFiles").html(
+                                    (data===null)?'not allowed to write playlist (read only? non-existent list?)':
+                                            (data.error?'error: '+data.error:
+                                                    (data?'playlist files set':'playlist files not set'))
+                            ); }
+                    )
+                }
+            }
+            $("#link_Playlist_SetFiles").click(run_Playlist_SetFiles);
+
+            function run_Library_QuerySimilarArtists () {
+                Beekeeper.Library_QuerySimilarArtists(
+                        'Madonna',
+                        parseFloat($("#input_Library_QuerySimilarArtists").val()),
+                        function(data){ $("#target_Library_QuerySimilarArtists").html(
+                                (data===null)?'no result for similarity':
+                                        (data.error?'error: '+data.error:data.split('\0').join(';'))
+                        ); }
+                );
+            }
+            $("#link_Library_QuerySimilarArtists").click(run_Library_QuerySimilarArtists);
 
             Beekeeper.Library_GetFileTags(
                     trackUrl,
@@ -742,6 +827,9 @@
     <p>Note: some of the commands may cause MusicBee to react with dialogs, please be prepared to respond. For commands with a link label, click the link to execute the command.</p>
     <table>
         <tr><td>Setting_GetPersistentStoragePath: </td><td id="target_Setting_GetPersistentStoragePath">[result]</td></tr>
+        <tr><td>Setting_GetReadOnly_BK: </td><td id="target_Setting_GetReadOnly_BK">[result]</td></tr>
+        <tr><td>Setting_GetShare_BK: </td><td id="target_Setting_GetShare_BK">[result]</td></tr>
+        <tr><td>Setting_GetVersion_BK: </td><td id="target_Setting_GetVersion_BK">[result]</td></tr>
         <tr><td>Setting_GetSkin: </td><td id="target_Setting_GetSkin">[result]</td></tr>
         <tr><td>Setting_GetSkinElementColor: </td><td id="target_Setting_GetSkinElementColor">[result]</td></tr>
         <tr><td>Setting_IsWindowBordersSkinned: </td><td id="target_Setting_IsWindowBordersSkinned">[result]</td></tr>
@@ -817,6 +905,11 @@
         <tr><td><a href="javascript:" id="link_MB_ShowNowPlayingAssistant">MB_ShowNowPlayingAssistant</a>: </td><td id="target_MB_ShowNowPlayingAssistant">[result]</td></tr>
         <tr><td>Player_GetShowRatingTrack: </td><td id="target_Player_GetShowRatingTrack">[result]</td></tr>
         <tr><td>Player_GetShowRatingLove: </td><td id="target_Player_GetShowRatingLove">[result]</td></tr>
+        <tr><td>Setting_GetLastFmUserId: </td><td id="target_Setting_GetLastFmUserId">[result]</td></tr>
+        <tr><td>Playlist_GetName: </td><td id="target_Playlist_GetName">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_CreatePlaylist">Playlist_CreatePlaylist</a>: </td><td id="target_Playlist_CreatePlaylist">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_SetFiles">Playlist_SetFiles</a>: </td><td id="target_Playlist_SetFiles">[result]</td></tr>
+        <tr><td><label for="input_Library_QuerySimilarArtists"><a href="javascript:" id="link_Library_QuerySimilarArtists">Library_QuerySimilarArtists</a>: </label><input type="text" size="4" id="input_Library_QuerySimilarArtists"></td><td id="target_Library_QuerySimilarArtists">[result]</td></tr>
 
         <tr><td><a href="javascript:" id="link_TestRun">Playlist_TestRun</a>: </td><td id="target_TestRun">[result]</td></tr>
 

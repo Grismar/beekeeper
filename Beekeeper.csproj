@@ -136,6 +136,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
     <None Include="content\base.css" />
   </ItemGroup>
   <ItemGroup>
