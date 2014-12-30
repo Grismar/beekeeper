@@ -427,7 +427,7 @@ namespace MusicBeePlugin
             string targetFolder;
             string parameterName;
             string[] filenames;
-            string[] sourcefileUrls;
+            string[] sourceFileUrls;
             string[] urls;
             string[] results;
             string[] files;
@@ -468,6 +468,9 @@ namespace MusicBeePlugin
             Plugin.SettingId settingId;
             Plugin.LibraryCategory category;
             Plugin.DownloadTarget target;
+            // copy parameters to a case-insensitive comparer to deal with variation in parameter naming
+            // only used in cases where the naming isn't consistent with the overall naming scheme
+            Dictionary<string, object> ciParameters = new Dictionary<string, object>(parameters, StringComparer.CurrentCultureIgnoreCase);
             // switch statement dealing with all calls
             try
             {
@@ -518,7 +521,7 @@ namespace MusicBeePlugin
                         {
                             sourceFileUrl = (string)parameters["sourceFileUrl"];
                             field = (Plugin.MetaDataType)parameters["field"];
-                            value = (string)parameters["sourceFileUrl"];
+                            value = (string)ciParameters["value"];
                             result = mbApiInterface.Library_SetFileTag(sourceFileUrl, field, value);
                         }
                         else
@@ -746,15 +749,28 @@ namespace MusicBeePlugin
                     case "NowPlayingList_GetCurrentIndex": // int ()
                         result = mbApiInterface.NowPlayingList_GetCurrentIndex();
                         break;
+                    // not canon, follows normal naming scheme
+                    case "NowPlayingList_GetFileUrlAt":
+                    // not canon, deviates from normal naming scheme, but matches other MusicBee API methods
+                    case "NowPlayingList_GetListFileUrlAt":
+                    // not canon, deviates from normal naming scheme, but matches other MusicBee API methods
+                    case "NowPlayingList_GetFileUrl":
+                    // canon, deviates from normal naming scheme
                     case "NowPlayingList_GetListFileUrl": // string (int index)
                         index = (int)parameters["index"];
                         result = mbApiInterface.NowPlayingList_GetListFileUrl(index);
                         break;
+                    // not canon, follows normal naming scheme
+                    case "NowPlayingList_GetFilePropertyAt":
+                    // canon, deviates from normal naming scheme
                     case "NowPlayingList_GetFileProperty": // string (int index, FilePropertyType type)
                         index = (int)parameters["index"];
                         fptype = (Plugin.FilePropertyType)parameters["type"];
                         result = mbApiInterface.NowPlayingList_GetFileProperty(index, fptype);
                         break;
+                    // not canon, follows normal naming scheme
+                    case "NowPlayingList_GetFileTagAt":
+                    // canon, deviates from normal naming scheme
                     case "NowPlayingList_GetFileTag": // string (int index, MetaDataType field)
                         index = (int)parameters["index"];
                         field = (Plugin.MetaDataType)parameters["field"];
@@ -876,17 +892,8 @@ namespace MusicBeePlugin
                         {
                             folderName = (string)parameters["folderName"];
                             playlistName = (string)parameters["playlistName"];
-                            if (parameters.ContainsKey("fileNames"))
-                            {
-                                // canon, deviates from normal naming scheme
-                                parameterName = "fileNames";
-                            }
-                            else
-                            {
-                                // not canon, but fits normal naming scheme
-                                parameterName = "filenames";
-                            }
-                            filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
+                            // cast the arraylist explictly to string and convert to an array
+                            filenames = ((System.Collections.ArrayList)parameters["filenames"]).Cast<string>().ToArray();
                             result = mbApiInterface.Playlist_CreatePlaylist(folderName, playlistName, filenames);
                         }
                         else
@@ -898,17 +905,8 @@ namespace MusicBeePlugin
                         if (!ReadOnly)
                         {
                             playlistUrl = (string)parameters["playlistUrl"];
-                            if (parameters.ContainsKey("fileNames"))
-                            {
-                                // canon, deviates from normal naming scheme
-                                parameterName = "fileNames";
-                            }
-                            else
-                            {
-                                // not canon, but fits normal naming scheme
-                                parameterName = "filenames";
-                            }
-                            filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
+                            // cast the arraylist explictly to string and convert to an array
+                            filenames = ((System.Collections.ArrayList)parameters["filenames"]).Cast<string>().ToArray();
                             result = mbApiInterface.Playlist_SetFiles(playlistUrl, filenames);
                         }
                         else
@@ -931,36 +929,46 @@ namespace MusicBeePlugin
                         key = (string)parameters["key"];
                         result = mbApiInterface.Library_QueryGetLookupTableValue(key);
                         break;
-                    case "NowPlayingList_QueueFilesNext": // bool (string[] sourcefileUrl/sourcefileUrls)
-                        if (parameters.ContainsKey("sourcefileUrl"))
-                            // canon, deviates from normal naming scheme
+                    case "NowPlayingList_QueueFilesNext": // bool (string[] sourcefileUrl[s]/sourcefileUrl[s])
+                        // not canon, avoid sourcefileUrl/sourceFileUrl and sourcefileUrls/sourceFileUrls conflict
+                        if (ciParameters.ContainsKey("sourcefileUrl"))
+                            // canon, (ALSO) deviates from normal naming scheme
                             parameterName = "sourcefileUrl";
                         else
                             // not canon, but fits normal naming scheme
                             parameterName = "sourcefileUrls";
-                        sourcefileUrls = (string[])parameters[parameterName];
-                        result = mbApiInterface.NowPlayingList_QueueFilesNext(sourcefileUrls);
+                        // cast the arraylist explictly to string and convert to an array
+                        sourceFileUrls = ((System.Collections.ArrayList)ciParameters["sourceFileUrls"]).Cast<string>().ToArray();
+                        result = mbApiInterface.NowPlayingList_QueueFilesNext(sourceFileUrls);
                         break;
-                    case "NowPlayingList_QueueFilesLast": // bool (string[] sourcefileUrl/sourcefileUrls)
-                        if (parameters.ContainsKey("sourcefileUrl"))
-                            // canon, deviates from normal naming scheme
+                    case "NowPlayingList_QueueFilesLast": // bool (string[] sourcefileUrl[s]/sourcefileUrl[s])
+                        // not canon, avoid sourcefileUrl/sourceFileUrl and sourcefileUrls/sourceFileUrls conflict
+                        if (ciParameters.ContainsKey("sourcefileUrl"))
+                            // canon, (ALSO) deviates from normal naming scheme
                             parameterName = "sourcefileUrl";
                         else
                             // not canon, but fits normal naming scheme
                             parameterName = "sourcefileUrls";
-                        sourcefileUrls = (string[])parameters[parameterName];
-                        result = mbApiInterface.NowPlayingList_QueueFilesLast(sourcefileUrls);
+                        // cast the arraylist explictly to string and convert to an array
+                        sourceFileUrls = ((System.Collections.ArrayList)ciParameters["sourceFileUrls"]).Cast<string>().ToArray();
+                        result = mbApiInterface.NowPlayingList_QueueFilesLast(sourceFileUrls);
                         break;
             // api version 20
                     case "Setting_GetWebProxy": // string ()
                         result = mbApiInterface.Setting_GetWebProxy();
                         break;
             // api version 21
+                    // not canon, but fits atypical naming scheme of several other MusicBee Plugin API methods
+                    case "NowPlayingList_Remove": // bool (int index)
+                    // canon, fits normal naming scheme 
                     case "NowPlayingList_RemoveAt": // bool (int index)
                         index = (int)parameters["index"];
                         result = mbApiInterface.NowPlayingList_RemoveAt(index);
                         break;
             // api version 22
+                    // not canon, but fits atypical naming scheme of several other MusicBee Plugin API methods
+                    case "Playlist_Remove": // bool (int index)
+                    // canon, fits normal naming scheme 
                     case "Playlist_RemoveAt": // bool (string playlistUrl, int index)
                         playlistUrl = (string)parameters["playlistUrl"];
                         index = (int)parameters["index"];
@@ -1062,7 +1070,8 @@ namespace MusicBeePlugin
             // api version 31
                     case "Playlist_AppendFiles": // bool (string playlistUrl, string[] filenames)
                         playlistUrl = (string)parameters["playlistUrl"];
-                        filenames = (string[])parameters["filenames"];
+                        // cast the arraylist explictly to string and convert to an array
+                        filenames = ((System.Collections.ArrayList)parameters["filenames"]).Cast<string>().ToArray();
                         result = mbApiInterface.Playlist_AppendFiles(playlistUrl, filenames);
                         break;
             // api version 32
@@ -1128,7 +1137,8 @@ namespace MusicBeePlugin
                         break;
                     case "Library_FindDevicePersistentId": // string[] (DeviceIdType idType, string[] ids)
                         idType = (Plugin.DeviceIdType)parameters["idType"];
-                        ids = (string[])parameters["ids"];
+                        // cast the arraylist explictly to string and convert to an array
+                        ids = ((System.Collections.ArrayList)parameters["ids"]).Cast<string>().ToArray();
                         values = new string[0];
                         mbApiInterface.Library_FindDevicePersistentId(idType, ids, ref values);
                         result = values;
@@ -1147,7 +1157,8 @@ namespace MusicBeePlugin
                         result = mbApiInterface.Playlist_DeletePlaylist(playlistUrl);
                         break;
                     case "Library_GetSyncDelta": // SyncDelta (string[] cachedFiles, DateTime updatedSince, LibraryCategory category)
-                        cachedFiles = (string[])parameters["cachedFiles"];
+                        // cast the arraylist explictly to string and convert to an array
+                        cachedFiles = ((System.Collections.ArrayList)parameters["cachedFiles"]).Cast<string>().ToArray();
                         updatedSince = (DateTime)parameters["updatedSince"];
                         category = (Plugin.LibraryCategory)parameters["category"];
                         syncDelta = new SyncDelta();

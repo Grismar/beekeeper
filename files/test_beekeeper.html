@@ -551,21 +551,21 @@
                     }
             );
 
-            Beekeeper.NowPlayingList_GetListFileUrl(
+            Beekeeper.NowPlayingList_GetFileUrlAt(
                     0,
-                    function(data){ $("#target_NowPlayingList_GetListFileUrl").html( data ); }
+                    function(data){ $("#target_NowPlayingList_GetFileUrlAt").html( data ); }
             );
 
-            Beekeeper.NowPlayingList_GetFileProperty(
+            Beekeeper.NowPlayingList_GetFilePropertyAt(
                     0,
                     Beekeeper.FilePropertyType.Duration,
-                    function(data){ $("#target_NowPlayingList_GetFileProperty").html( data ); }
+                    function(data){ $("#target_NowPlayingList_GetFilePropertyAt").html( data ); }
             );
 
-            Beekeeper.NowPlayingList_GetFileTag(
+            Beekeeper.NowPlayingList_GetFileTagAt(
                     0,
                     Beekeeper.MetaDataType.Artist,
-                    function(data){ $("#target_NowPlayingList_GetFileTag").html( data ); }
+                    function(data){ $("#target_NowPlayingList_GetFileTagAt").html( data ); }
             );
 
             Beekeeper.MB_GetLocalization(
@@ -761,10 +761,12 @@
             }
             $("#link_Playlist_SetFiles").click(run_Playlist_SetFiles);
 
+            $("#input_Library_QuerySimilarArtists_1").val('Madonna');
+            $("#input_Library_QuerySimilarArtists_2").val(0.5);
             function run_Library_QuerySimilarArtists () {
                 Beekeeper.Library_QuerySimilarArtists(
-                        'Madonna',
-                        parseFloat($("#input_Library_QuerySimilarArtists").val()),
+                        $("#input_Library_QuerySimilarArtists_1").val(),
+                        parseFloat($("#input_Library_QuerySimilarArtists_2").val()),
                         function(data){ $("#target_Library_QuerySimilarArtists").html(
                                 (data===null)?'no result for similarity':
                                         (data.error?'error: '+data.error:data.split('\0').join(';'))
@@ -773,37 +775,106 @@
             }
             $("#link_Library_QuerySimilarArtists").click(run_Library_QuerySimilarArtists);
 
+            Beekeeper.Library_QueryLookupTable(
+                    '','','',
+                    function(data){ $("#target_Library_QueryLookupTable").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Library_QueryGetLookupTableValue(
+                    '',
+                    function(data){ $("#target_Library_QueryGetLookupTableValue").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            function run_NowPlayingList_QueueFilesNext () {
+                Beekeeper.NowPlayingList_QueueFilesNext(
+                        [trackUrl, trackUrl],
+                        function(data){ $("#target_NowPlayingList_QueueFilesNext").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'tracks enqueued':'tracks not enqueued'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_QueueFilesNext").click(run_NowPlayingList_QueueFilesNext);
+
+            function run_NowPlayingList_QueueFilesLast () {
+                Beekeeper.NowPlayingList_QueueFilesLast(
+                        [trackUrl, trackUrl],
+                        function(data){ $("#target_NowPlayingList_QueueFilesLast").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'tracks enqueued':'tracks not enqueued'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_QueueFilesLast").click(run_NowPlayingList_QueueFilesLast);
+
+            Beekeeper.Setting_GetWebProxy(
+                    function(data){ $("#target_Setting_GetWebProxy").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            function run_NowPlayingList_RemoveAt() {
+                Beekeeper.NowPlayingList_RemoveAt(
+                        0, // top item
+                        function(data){ $("#target_NowPlayingList_RemoveAt").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'track removed':'track not removed'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_RemoveAt").click(run_NowPlayingList_RemoveAt);
+
+            function run_Playlist_RemoveAt () {
+                if (createdPlayList==null) {
+                    alert ('Create the playlist first!')
+                } else {
+                    Beekeeper.Playlist_RemoveAt(
+                            createdPlayList,
+                            0, // top item
+                            function(data){ $("#target_Playlist_RemoveAt").html(
+                                    (data.error?'error: '+data.error:
+                                            (data?'track removed':'track not removed'))
+                            ); }
+                    );
+                }
+            }
+            $("#link_Playlist_RemoveAt").click(run_Playlist_RemoveAt);
+
             Beekeeper.Library_GetFileTags(
                     trackUrl,
                     [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
                     function(data){ $("#target_Library_GetFileTags").html( data ); }
             );
 
- /*
-            function run_TestRun() {
-                // reset any previous results
-                queryFiles = '';
-                Beekeeper.NowPlayingList_QueryFiles(
-                        '<SmartPlaylist />',
-                        function(data){
-                            $("#target_TestRun").html(
-                                    (data&&!data.error)?'query returned results':'query returned no results '+
-                                            (data.error?data.error:'')
-                            );
-                            // start collecting results
-                            Beekeeper.NowPlayingList_QueryGetNextFile(
-                                    process_TestRun
-                            );
-                        }
-                );
+            /*
+                       function run_TestRun() {
+                           // reset any previous results
+                           queryFiles = '';
+                           Beekeeper.NowPlayingList_QueryFiles(
+                                   '<SmartPlaylist />',
+                                   function(data){
+                                       $("#target_TestRun").html(
+                                               (data&&!data.error)?'query returned results':'query returned no results '+
+                                                       (data.error?data.error:'')
+                                       );
+                                       // start collecting results
+                                       Beekeeper.NowPlayingList_QueryGetNextFile(
+                                               process_TestRun
+                                       );
+                                   }
+                           );
 
-                Beekeeper.TestRun(
-                        playlistUrl,
-                        function(data){ $("#target_TestRun").html( data?'yes':'no' ); }
-                );
-            }
-            $("#link_TestRun").click(run_TestRun);
- */
+                           Beekeeper.TestRun(
+                                   playlistUrl,
+                                   function(data){ $("#target_TestRun").html( data?'yes':'no' ); }
+                           );
+                       }
+                       $("#link_TestRun").click(run_TestRun);
+            */
 
             function process_TestRun(data) {
                 if (data!=null) {
@@ -885,9 +956,9 @@
         <tr><td>MB_RefreshPanels: </td><td id="target_MB_RefreshPanels">[result]</td></tr>
         <tr><td>Setting_GetFieldName: </td><td id="target_Setting_GetFieldName">[result]</td></tr>
         <tr><td>Setting_GetDefaultFontName_BK: </td><td id="target_Setting_GetDefaultFontName_BK">[result]</td></tr>
-        <tr><td>NowPlayingList_GetListFileUrl: </td><td id="target_NowPlayingList_GetListFileUrl">[result]</td></tr>
-        <tr><td>NowPlayingList_GetFileProperty: </td><td id="target_NowPlayingList_GetFileProperty">[result]</td></tr>
-        <tr><td>NowPlayingList_GetFileTag: </td><td id="target_NowPlayingList_GetFileTag">[result]</td></tr>
+        <tr><td>NowPlayingList_GetFileUrlAt: </td><td id="target_NowPlayingList_GetFileUrlAt">[result]</td></tr>
+        <tr><td>NowPlayingList_GetFilePropertyAt: </td><td id="target_NowPlayingList_GetFilePropertyAt">[result]</td></tr>
+        <tr><td>NowPlayingList_GetFileTagAt: </td><td id="target_NowPlayingList_GetFileTagAt">[result]</td></tr>
         <tr><td>MB_GetLocalisation: </td><td id="target_MB_GetLocalization">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_NowPlayingList_IsAnyPriorTracks">NowPlayingList_IsAnyPriorTracks</a>: </td><td id="target_NowPlayingList_IsAnyPriorTracks">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_NowPlayingList_IsAnyFollowingTracks">NowPlayingList_IsAnyFollowingTracks</a>: </td><td id="target_NowPlayingList_IsAnyFollowingTracks">[result]</td></tr>
@@ -909,7 +980,14 @@
         <tr><td>Playlist_GetName: </td><td id="target_Playlist_GetName">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_Playlist_CreatePlaylist">Playlist_CreatePlaylist</a>: </td><td id="target_Playlist_CreatePlaylist">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_Playlist_SetFiles">Playlist_SetFiles</a>: </td><td id="target_Playlist_SetFiles">[result]</td></tr>
-        <tr><td><label for="input_Library_QuerySimilarArtists"><a href="javascript:" id="link_Library_QuerySimilarArtists">Library_QuerySimilarArtists</a>: </label><input type="text" size="4" id="input_Library_QuerySimilarArtists"></td><td id="target_Library_QuerySimilarArtists">[result]</td></tr>
+        <tr><td><label for="input_Library_QuerySimilarArtists_1"><a href="javascript:" id="link_Library_QuerySimilarArtists">Library_QuerySimilarArtists</a>: </label><input type="text" size="4" id="input_Library_QuerySimilarArtists_1"><label for="input_Library_QuerySimilarArtists_2">Similarity: </label><input type="text" size="4" id="input_Library_QuerySimilarArtists_2"></td><td id="target_Library_QuerySimilarArtists">[result]</td></tr>
+        <tr><td>Library_QueryLookupTable: </td><td id="target_Library_QueryLookupTable">[result]</td></tr>
+        <tr><td>Library_QueryGetLookupTableValue: </td><td id="target_Library_QueryGetLookupTableValue">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_QueueFilesNext">NowPlayingList_QueueFilesNext</a>: </td><td id="target_NowPlayingList_QueueFilesNext">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_QueueFilesLast">NowPlayingList_QueueFilesLast</a>: </td><td id="target_NowPlayingList_QueueFilesLast">[result]</td></tr>
+        <tr><td>Setting_GetWebProxy: </td><td id="target_Setting_GetWebProxy">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_RemoveAt">NowPlayingList_RemoveAt</a>: </td><td id="target_NowPlayingList_RemoveAt">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_RemoveAt">Playlist_RemoveAt</a>: </td><td id="target_Playlist_RemoveAt">[result]</td></tr>
 
         <tr><td><a href="javascript:" id="link_TestRun">Playlist_TestRun</a>: </td><td id="target_TestRun">[result]</td></tr>
 

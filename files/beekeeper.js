@@ -918,7 +918,7 @@ var Beekeeper = {
     },
 
     /**
-     * Enqueues a specific track right after the current track (inserting it) on the Now Playing list.
+     * Causes MusicBee to enqueue a specific track right after the current track (inserting it) on the Now Playing list.
      * NowPlayingList_QueueNext (string sourceFileUrl, function (boolean) callback)
      * @param {string} sourceFileUrl The path to the track (from MusicBee local perspective).
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
@@ -932,7 +932,7 @@ var Beekeeper = {
     },
 
     /**
-     * Enqueues a specific track at the end of (appending it to) the Now Playing list.
+     * Causes MusisBee to enqueue a specific track at the end of (appending it to) the Now Playing list.
      * NowPlayingList_QueueLast (string sourceFileUrl, function (boolean) callback)
      * @param {string} sourceFileUrl The path to the track (from MusicBee local perspective).
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
@@ -946,7 +946,8 @@ var Beekeeper = {
     },
 
     /**
-     * Play random tracks from library. Drops entire library in Now Playing List, enables shuffle and starts playback.
+     * Cause MusicBee to play random tracks from library. Effectively drops entire library in Now Playing List,
+     * enables shuffle and starts playback.
      * NowPlayingList_PlayLibraryShuffled (function (boolean) callback)
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
      */
@@ -1082,9 +1083,9 @@ var Beekeeper = {
      * @param {int} index The index of the item on the list, with 0 being the top one.
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    NowPlayingList_GetListFileUrl: function(index, callback) {
+    NowPlayingList_GetFileUrlAt: function(index, callback) {
         this.Call(
-            'NowPlayingList_GetListFileUrl',
+            'NowPlayingList_GetFileUrlAt',
             { index: index },
             callback
         )
@@ -1097,9 +1098,9 @@ var Beekeeper = {
      * @param {int} type The FilePropertyType of the property to retrieve.
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    NowPlayingList_GetFileProperty: function(index, type, callback) {
+    NowPlayingList_GetFilePropertyAt: function(index, type, callback) {
         this.Call(
-            'NowPlayingList_GetFileProperty',
+            'NowPlayingList_GetFilePropertyAt',
             { index: index, type: type },
             callback
         )
@@ -1112,9 +1113,9 @@ var Beekeeper = {
      * @param {int} field The MetaDataType of the field/tag to retrieve.
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    NowPlayingList_GetFileTag: function(index, field, callback) {
+    NowPlayingList_GetFileTagAt: function(index, field, callback) {
         this.Call(
-            'NowPlayingList_GetFileTag',
+            'NowPlayingList_GetFileTagAt',
             { index: index, field: field },
             callback
         )
@@ -1434,13 +1435,13 @@ var Beekeeper = {
      * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
      * @param {string} folderName Name of 'folder' in the MusicBee Playlists (not a file system folder).
      * @param {string} playlistName Name for playlist.
-     * @param {string[]} fileNames Array of fileNames for files/tracks on playlist.
+     * @param {string[]} filenames Array of filenames for files/tracks on playlist.
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    Playlist_CreatePlaylist: function (folderName, playlistName, fileNames, callback) {
+    Playlist_CreatePlaylist: function (folderName, playlistName, filenames, callback) {
         this.Call(
             'Playlist_CreatePlaylist',
-            { folderName: folderName, playlistName: playlistName, fileNames: fileNames },
+            { folderName: folderName, playlistName: playlistName, filenames: filenames },
             callback
         )
     },
@@ -1448,15 +1449,15 @@ var Beekeeper = {
     /**
      * Replaces the files/tracks in a playlist with a new set.
      * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
-     * Playlist_SetFiles (string playlistUrl, string[] fileNames, function (boolean) callback)
+     * Playlist_SetFiles (string playlistUrl, string[] filenames, function (boolean) callback)
      * @param {string} playlistUrl The path to the playlist (from MusicBee local perspective).
-     * @param {string[]} fileNames Array of fileNames for files/tracks on playlist.
+     * @param {string[]} filenames Array of filenames for files/tracks on playlist.
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
      */
-    Playlist_SetFiles: function (playlistUrl, fileNames, callback) {
+    Playlist_SetFiles: function (playlistUrl, filenames, callback) {
         this.Call(
             'Playlist_SetFiles',
-            { playlistUrl: playlistUrl, fileNames: fileNames },
+            { playlistUrl: playlistUrl, filenames: filenames },
             callback
         )
     },
@@ -1473,6 +1474,106 @@ var Beekeeper = {
         this.Call(
             'Library_QuerySimilarArtists',
             { artistName: artistName, minimumArtistSimilarityRating: minimumArtistSimilarityRating },
+            callback
+        )
+    },
+
+    /**
+     * TODO function unknown, but works
+     * Library_QueryLookupTable (string[] keyTags, string[]valueTags, string query, function (bool) callback)
+     * @param keyTags
+     * @param valueTags
+     * @param query
+     * @param {function (object)} callback Callback function for method, expecting a (bool) JSON object
+     */
+    Library_QueryLookupTable: function (keyTags, valueTags, query, callback) {
+        this.Call(
+            'Library_QueryLookupTable',
+            { keyTags: keyTags, valueTags: valueTags, query: query },
+            callback
+        )
+    },
+
+    /**
+     * TODO function unknown, but works
+     * Library_QueryGetLookupTableValue (string key, function (string) callback)
+     * @param key
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Library_QueryGetLookupTableValue: function (key, callback) {
+        this.Call(
+            'Library_QueryGetLookupTableValue',
+            { key: key },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to enqueue a set of files/tracks right after the current track (inserting them) on the
+     * Now Playing list.
+     * NowPlayingList_QueueFilesNext (string[] sourceFileUrls, function (boolean) callback)
+     * @param {string[]} sourceFileUrls Source file urls (from MusicBee perspective) of files/tracks to enqueue.
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    NowPlayingList_QueueFilesNext: function (sourceFileUrls, callback) {
+        this.Call(
+            'NowPlayingList_QueueFilesNext',
+            { sourceFileUrls: sourceFileUrls},
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to enqueue a set of files/tracks at the end of the Now Playing list (appending them).
+     * NowPlayingList_QueueFilesLast (string[] sourceFileUrls, function (boolean) callback)
+     * @param {string[]} sourceFileUrls Source file urls (from MusicBee perspective) of files/tracks to enqueue.
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    NowPlayingList_QueueFilesLast: function (sourceFileUrls, callback) {
+        this.Call(
+            'NowPlayingList_QueueFilesLast',
+            { sourceFileUrls: sourceFileUrls },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the address of the web proxy MusicBee is using.
+     * Setting_GetWebProxy (function (string) callback)
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Setting_GetWebProxy: function (callback) {
+        this.Call(
+            'Setting_GetWebProxy',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Removes a single file/track from the Now Playing list, at a specific index.
+     * NowPlayingList_RemoveAt (int index, function (boolean) callback)
+     * @param {int} index Index to remove track at (0 is the top of the list).
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    NowPlayingList_RemoveAt: function (index, callback) {
+        this.Call(
+            'NowPlayingList_RemoveAt',
+            { index: index },
+            callback
+        )
+    },
+
+    /**
+     * Removes a single file/track from a specific playlist, at a specific index.
+     * @param {string} playlistUrl The path to the playlist (from MusicBee local perspective).
+     * @param {int} index Index to remove track at (0 is the top of the list).
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_RemoveAt: function (playlistUrl, index, callback) {
+        this.Call(
+            'Playlist_RemoveAt',
+            { playlistUrl: playlistUrl, index: index },
             callback
         )
     },
