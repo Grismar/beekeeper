@@ -476,6 +476,9 @@ namespace MusicBeePlugin
             bool cancelDownload;
             DateTime updatedSince;
             SyncDelta syncDelta;
+            List<string> playlist;
+            List<string> copiedItems;
+            SortedSet<int> uniqueIndices;
             Plugin.FilePropertyType fptype;
             Plugin.MetaDataType field;
             Plugin.MetaDataType[] fields;
@@ -988,9 +991,16 @@ namespace MusicBeePlugin
                     case "Playlist_Remove": // bool (int index)
                     // canon, fits normal naming scheme 
                     case "Playlist_RemoveAt": // bool (string playlistUrl, int index)
-                        playlistUrl = (string)parameters["playlistUrl"];
-                        index = (int)parameters["index"];
-                        result = mbApiInterface.Playlist_RemoveAt(playlistUrl, index);
+                        if (!ReadOnly)
+                        {
+                            playlistUrl = (string)parameters["playlistUrl"];
+                            index = (int)parameters["index"];
+                            result = mbApiInterface.Playlist_RemoveAt(playlistUrl, index);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
             // api version 23
                     case "MB_SetPanelScrollableArea": // ()
@@ -1055,6 +1065,54 @@ namespace MusicBeePlugin
                         fromIndices = ((System.Collections.ArrayList)parameters["fromIndices"]).Cast<int>().ToArray();
                         toIndex = (int)parameters["toIndex"];
                         result = mbApiInterface.NowPlayingList_MoveFiles(fromIndices, toIndex);
+                        break;
+                    // fixes erratic behavior and bugs in indexing of Playlist_MoveFiles
+                    case "NowPlayingList_MoveFiles_BK": // bool (string playlistUrl, int[] fromIndices, int toIndex)
+                    // fits 'To' for index functions
+                    case "NowPlayingList_MoveFilesTo_BK": // bool (string playlistUrl, int[] fromIndices, int toIndex)
+                        fromIndices = ((System.Collections.ArrayList)parameters["fromIndices"]).Cast<int>().ToArray();
+                        toIndex = (int)parameters["toIndex"];
+
+                        // get a local copy of the playlist
+                        filenames = new string[0];
+                        mbApiInterface.NowPlayingList_QueryFilesEx("<SmartPlaylist />", ref filenames);
+                        playlist = filenames.ToList();
+
+                        // if from index out of bounds, fail
+                        if (fromIndices.Max() > playlist.Count - 1)
+                        {
+                            result = false;
+                            break;
+                        }
+
+                        // if trying to insert beyond the remaining list, append instead
+                        uniqueIndices = new SortedSet<int>(fromIndices);
+                        if (toIndex + uniqueIndices.Count > playlist.Count)
+                        {
+                            toIndex = playlist.Count - uniqueIndices.Count;
+                        }
+
+                        // copy items to move
+                        copiedItems = new List<string>();
+                        foreach (int i in fromIndices)
+                        {
+                            copiedItems.Add(filenames[i]);
+                        }
+
+                        // remove copied items
+                        foreach (int i in uniqueIndices.Reverse())
+                        {
+                            playlist.RemoveAt(i);
+                        }
+
+                        // insert copied items
+                        playlist.InsertRange(toIndex, copiedItems);
+                        mbApiInterface.NowPlayingList_Clear();
+                        foreach (string s in playlist)
+                        {
+                            mbApiInterface.NowPlayingList_QueueLast(s);
+                        }
+                        result = true;
                         break;
             // api version 28
                     case "Library_GetArtworkUrl": // string (string sourceFileUrl, int index)
@@ -1132,16 +1190,23 @@ namespace MusicBeePlugin
                         break;
             // api version 31
                     case "Playlist_AppendFiles": // bool (string playlistUrl, string[] filenames)
-                        playlistUrl = (string)parameters["playlistUrl"];
-                        // cast the arraylist explictly to string and convert to an array
-                        if (parameters.ContainsKey("filenames"))
-                            // canon, deviates from normal naming scheme
-                            parameterName = "filenames";
+                        if (!ReadOnly)
+                        {
+                            playlistUrl = (string)parameters["playlistUrl"];
+                            // cast the arraylist explictly to string and convert to an array
+                            if (parameters.ContainsKey("filenames"))
+                                // canon, deviates from normal naming scheme
+                                parameterName = "filenames";
+                            else
+                                // not canon, but fits normal naming scheme
+                                parameterName = "sourceFileUrls";
+                            filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
+                            result = mbApiInterface.Playlist_AppendFiles(playlistUrl, filenames);
+                        }
                         else
-                            // not canon, but fits normal naming scheme
-                            parameterName = "sourceFileUrls";
-                        filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
-                        result = mbApiInterface.Playlist_AppendFiles(playlistUrl, filenames);
+                        {
+                            result = null;
+                        }
                         break;
             // api version 32
                     case "Sync_FileStart": // string (string filename)
@@ -1174,11 +1239,74 @@ namespace MusicBeePlugin
                         mbApiInterface.Playlist_QueryFilesEx(playlistUrl, ref filenames);
                         result = filenames;
                         break;
+            // not canon, but fits 'To' for index functions
+                    case "Playlist_MoveFilesTo": // bool (string playlistUrl, int[] fromIndices, int toIndex)
+            // canon
                     case "Playlist_MoveFiles": // bool (string playlistUrl, int[] fromIndices, int toIndex)
-                        playlistUrl = (string)parameters["playlistUrl"];
-                        fromIndices = (int[])parameters["fromIndices"];
-                        toIndex = (int)parameters["toIndex"];
-                        result = mbApiInterface.Playlist_MoveFiles(playlistUrl, fromIndices, toIndex);
+                        if (!ReadOnly)
+                        {
+                            playlistUrl = (string)parameters["playlistUrl"];
+                            fromIndices = ((System.Collections.ArrayList)parameters["fromIndices"]).Cast<int>().ToArray();
+                            toIndex = (int)parameters["toIndex"];
+                            result = mbApiInterface.Playlist_MoveFiles(playlistUrl, fromIndices, toIndex);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
+                        break;
+            // fixes erratic behavior and bugs in indexing of Playlist_MoveFiles
+                    case "Playlist_MoveFiles_BK": // bool (string playlistUrl, int[] fromIndices, int toIndex)
+            // fits 'To' for index functions
+                    case "Playlist_MoveFilesTo_BK": // bool (string playlistUrl, int[] fromIndices, int toIndex)
+                        if (!ReadOnly)
+                        {
+                            // TODO create a generic to do the heavy lifting for this function and NowPlayingList_MoveFiles_BK
+                            playlistUrl = (string)parameters["playlistUrl"];
+                            fromIndices = ((System.Collections.ArrayList)parameters["fromIndices"]).Cast<int>().ToArray();
+                            toIndex = (int)parameters["toIndex"];
+
+                            // get a local copy of the playlist
+                            filenames = new string[0];
+                            mbApiInterface.Playlist_QueryFilesEx(playlistUrl, ref filenames);
+                            playlist = filenames.ToList();
+
+                            // if from index out of bounds, fail
+                            if (fromIndices.Max() > playlist.Count - 1)
+                            {
+                                result = false;
+                                break;
+                            }
+
+                            // if trying to insert beyond the remaining list, append instead
+                            uniqueIndices = new SortedSet<int>(fromIndices);
+                            if (toIndex + uniqueIndices.Count > playlist.Count)
+                            {
+                                toIndex = playlist.Count - uniqueIndices.Count;
+                            }
+
+                            // copy items to move
+                            copiedItems = new List<string>();
+                            foreach (int i in fromIndices)
+                            {
+                                copiedItems.Add(filenames[i]);
+                            }
+
+                            // remove copied items
+                            foreach (int i in uniqueIndices.Reverse())
+                            {
+                                playlist.RemoveAt(i);
+                            }
+
+                            // insert copied items
+                            playlist.InsertRange(toIndex, copiedItems);
+                            mbApiInterface.Playlist_SetFiles(playlistUrl, playlist.ToArray());
+                            result = true;
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
                     case "Playlist_PlayNow": // bool (string playlistUrl)
                         playlistUrl = (string)parameters["playlistUrl"];
@@ -1191,7 +1319,8 @@ namespace MusicBeePlugin
                         localOnly = (bool)parameters["localOnly"];
                         urls = new string[0];
                         mbApiInterface.NowPlaying_GetSoundtrackPictureUrls(localOnly, ref urls);
-                        result = urls;
+                        // convert all (local) urls to weblinks (following MusicBee naming)
+                        result = urls.Select(UrlToLink);
                         break;
                     case "Library_GetDevicePersistentId": // string (string sourceFileUrl, DeviceIdType idType)
                         sourceFileUrl = (string)parameters["sourceFileUrl"];

@@ -838,8 +838,9 @@
                             createdPlayList,
                             0, // top item
                             function(data){ $("#target_Playlist_RemoveAt").html(
-                                    (data.error?'error: '+data.error:
-                                            (data?'track removed':'track not removed'))
+                                    (data===null)?'removing files failed, read only?':
+                                            (data.error?'error: '+data.error:
+                                                    (data?'track removed':'track not removed'))
                             ); }
                     );
                 }
@@ -921,29 +922,29 @@
             }
             $("#link_Player_GetButtonEnabled").click(run_Player_GetButtonEnabled);
 
-            function run_NowPlayingList_MoveFiles_1() {
+            function run_NowPlayingList_MoveFiles() {
                 Beekeeper.NowPlayingList_MoveFiles(
-                        [8, 9], // move the 9th and 10th track
+                        [9, 8], // move the 9th and 10th in reverse order
                         -1,     // to the top position -1 [not 0!]
-                        function(data){ $("#target_NowPlayingList_MoveFiles_1").html(
+                        function(data){ $("#target_NowPlayingList_MoveFiles").html(
                                 (data.error?'error: '+data.error:
                                         (data?'tracks moved':'tracks not moved'))
                         ); }
                 );
             }
-            $("#link_NowPlayingList_MoveFiles_1").click(run_NowPlayingList_MoveFiles_1);
+            $("#link_NowPlayingList_MoveFiles").click(run_NowPlayingList_MoveFiles);
 
-            function run_NowPlayingList_MoveFiles_2() {
-                Beekeeper.NowPlayingList_MoveFiles(
-                        [9, 8], // move the 10th and 9th track
-                        -1,     // to the top position -1 [not 0!]
-                        function(data){ $("#target_NowPlayingList_MoveFiles_2").html(
+            function run_NowPlayingList_MoveFiles_BK() {
+                Beekeeper.NowPlayingList_MoveFiles_BK(
+                        [9, 8], // move the 9th and 10th in reverse order
+                        0,      // to the top position
+                        function(data){ $("#target_NowPlayingList_MoveFiles_BK").html(
                                 (data.error?'error: '+data.error:
                                         (data?'tracks moved':'tracks not moved'))
                         ); }
                 );
             }
-            $("#link_NowPlayingList_MoveFiles_2").click(run_NowPlayingList_MoveFiles_2);
+            $("#link_NowPlayingList_MoveFiles_BK").click(run_NowPlayingList_MoveFiles_BK);
 
             Beekeeper.Library_GetArtworkUrlLink_BK (
                     trackUrl,
@@ -1046,12 +1047,117 @@
                         playlistUrl,
                         [trackUrl, trackUrl],
                         function(data){ $("#target_Playlist_AppendFiles").html(
-                                (data.error?'error: '+data.error:
-                                        (data?'tracks appended':'tracks not appended'))
+                                (data===null)?'appending files failed, read only?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'tracks appended':'tracks not appended'))
                         ); }
                 );
             }
             $("#link_Playlist_AppendFiles").click(run_Playlist_AppendFiles);
+
+            function run_Library_QueryFilesEx() {
+                Beekeeper.Library_QueryFilesEx(
+                        '<SmartPlaylist><Source Type="1"><Conditions CombineMethod="All"><Condition Field="None" Comparison="Contains" Value="'+$("#input_Library_QueryFilesEx").val()+'" /></Conditions></Source></SmartPlaylist>',
+                        function(data){ $("#target_Library_QueryFilesEx").html(
+                                (data.error?'error: '+data.error:data.join("<br/>"))
+                        ); }
+                )
+            }
+            $("#link_Library_QueryFilesEx").click(run_Library_QueryFilesEx);
+
+            function run_NowPlayingList_QueryFilesEx() {
+                Beekeeper.NowPlayingList_QueryFilesEx(
+                        '<SmartPlaylist><Source Type="1"><Conditions CombineMethod="All"><Condition Field="None" Comparison="Contains" Value="'+$("#input_NowPlayingList_QueryFilesEx").val()+'" /></Conditions></Source></SmartPlaylist>',
+                        function(data){ $("#target_NowPlayingList_QueryFilesEx").html(
+                                (data.error?'error: '+data.error:data.join("<br/>"))
+                        ); }
+                )
+            }
+            $("#link_NowPlayingList_QueryFilesEx").click(run_NowPlayingList_QueryFilesEx);
+
+            function run_Playlist_QueryFilesEx() {
+                Beekeeper.Playlist_QueryFilesEx(
+                        playlistUrl,
+                        function(data){ $("#target_Playlist_QueryFilesEx").html(
+                                (data.error?'error: '+data.error:data.join("<br/>"))
+                        ); }
+                );
+            }
+            $("#link_Playlist_QueryFilesEx").click(run_Playlist_QueryFilesEx);
+
+            function run_Playlist_MoveFiles() {
+                Beekeeper.Playlist_MoveFiles(
+                        playlistUrl,
+                        [9, 8], // move the 9th and 10th track in reverse order
+                        1,      // to the 2nd (!) position (!! -1 not accepted, unlike NowPlaying)
+                        function(data){ $("#target_Playlist_MoveFiles").html(
+                                (data===null)?'moving files failed, read only?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'tracks moved':'tracks not moved'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_MoveFiles").click(run_Playlist_MoveFiles);
+
+            function run_Playlist_MoveFiles_BK() {
+                Beekeeper.Playlist_MoveFiles_BK(
+                        playlistUrl,
+                        [9, 8], // move the 9th and 10th track in reverse order
+                        0,     // to the top position
+                        function(data){ $("#target_Playlist_MoveFiles_BK").html(
+                                (data===null)?'moving files failed, read only?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'tracks moved':'tracks not moved'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_MoveFiles_BK").click(run_Playlist_MoveFiles_BK);
+
+            function run_Playlist_PlayNow() {
+                Beekeeper.Playlist_PlayNow(
+                        playlistUrl,
+                        function(data){ $("#target_Playlist_PlayNow").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'playlist playing':'playlist not playing'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_PlayNow").click(run_Playlist_PlayNow);
+
+            function run_NowPlaying_IsSoundtrack() {
+                Beekeeper.NowPlaying_IsSoundtrack(
+                        function(data){ $("#target_NowPlaying_IsSoundtrack").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'current track is soundtrack':'current track is not soundtrack'))
+                        ); }
+                );
+            }
+            $("#link_NowPlaying_IsSoundtrack").click(run_NowPlaying_IsSoundtrack);
+
+            function run_NowPlaying_GetSoundtrackPictureUrls() {
+                    Beekeeper.NowPlaying_GetSoundtrackPictureUrls(
+                            false,
+                            function(data){ $("#target_NowPlaying_GetSoundtrackPictureUrls").html(
+                                    (data.error?'error: '+data.error:data
+                                            .map(
+                                                    function(s){
+                                                        return '<a href="'+s+'">Image</a> '
+                                                    }
+                                            )
+                                            .join("<br>"))
+                            ); }
+                    );
+            }
+            $("#link_NowPlaying_GetSoundtrackPictureUrls").click(run_NowPlaying_GetSoundtrackPictureUrls);
+
+            Beekeeper.Library_GetDevicePersistentId(
+                    trackUrl,
+                    Beekeeper.DeviceIdType.GooglePlay,
+                    function(data){ $("#target_Library_GetDevicePersistentId").html(
+                            (data===null)?'getting track id failed, no device?':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            );
 
             /*
                        function run_TestRun() {
@@ -1198,8 +1304,8 @@
         <tr><td><a href="javascript:" id="link_Pending_GetFileProperty">Pending_GetFileProperty</a>: </td><td id="target_Pending_GetFileProperty">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_Pending_GetFileTag">Pending_GetFileTag</a>: </td><td id="target_Pending_GetFileTag">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_Player_GetButtonEnabled">Player_GetButtonEnabled</a>: </td><td id="target_Player_GetButtonEnabled">[result]</td></tr>
-        <tr><td><a href="javascript:" id="link_NowPlayingList_MoveFiles_1">NowPlayingList_MoveFiles</a>: </td><td id="target_NowPlayingList_MoveFiles_1">[result]</td></tr>
-        <tr><td><a href="javascript:" id="link_NowPlayingList_MoveFiles_2">NowPlayingList_MoveFiles</a>: </td><td id="target_NowPlayingList_MoveFiles_2">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_MoveFiles">NowPlayingList_MoveFiles</a>: </td><td id="target_NowPlayingList_MoveFiles">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_MoveFiles_BK">NowPlayingList_MoveFiles_BK</a>: </td><td id="target_NowPlayingList_MoveFiles_BK">[result]</td></tr>
         <tr><td>Library_GetArtworkUrlLink_BK: </td><td id="target_Library_GetArtworkUrlLink_BK">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_Library_GetArtistPictureThumbLink_BK">Library_GetArtistPictureThumbLink_BK</a>: </td><td id="target_Library_GetArtistPictureThumbLink_BK">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_NowPlaying_GetArtworkUrlLink_BK">NowPlaying_GetArtworkUrlLink_BK</a>: </td><td id="target_NowPlaying_GetArtworkUrlLink_BK">[result]</td></tr>
@@ -1209,6 +1315,16 @@
         <tr><td><a href="javascript:" id="link_Library_GetArtistPictureUrls">Library_GetArtistPictureUrls</a>: </td><td><span id="target_Library_GetArtistPictureUrls_local">[result 1]</span><span id="target_Library_GetArtistPictureUrls_all">[result 2]</span></td></tr>
         <tr><td><a href="javascript:" id="link_NowPlaying_GetArtistPictureUrls">NowPlaying_GetArtistPictureUrls</a>: </td><td><span id="target_NowPlaying_GetArtistPictureUrls_local">[result 1]</span><span id="target_NowPlaying_GetArtistPictureUrls_all">[result 2]</span></td></tr>
         <tr><td><a href="javascript:" id="link_Playlist_AppendFiles">Playlist_AppendFiles</a>: </td><td id="target_Playlist_AppendFiles">[result]</td></tr>
+        <tr><td><label for="input_Library_QueryFilesEx"><a href="javascript:" id="link_Library_QueryFilesEx">Library_QueryFilesEx</a>: </label><input type="text" size="4" id="input_Library_QueryFilesEx"></td><td id="target_Library_QueryFilesEx">[result]</td></tr>
+        <tr><td><label for="input_NowPlayingList_QueryFilesEx"><a href="javascript:" id="link_NowPlayingList_QueryFilesEx">NowPlayingList_QueryFilesEx</a>: </label><input type="text" size="4" id="input_NowPlayingList_QueryFilesEx"></td><td id="target_NowPlayingList_QueryFilesEx">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_QueryFilesEx">Playlist_QueryFilesEx</a>: </td><td id="target_Playlist_QueryFilesEx">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_MoveFiles">Playlist_MoveFiles</a>: </td><td id="target_Playlist_MoveFiles">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_MoveFiles_BK">Playlist_MoveFiles_BK</a>: </td><td id="target_Playlist_MoveFiles_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_PlayNow">Playlist_PlayNow</a>: </td><td id="target_Playlist_PlayNow">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_IsSoundtrack">NowPlaying_IsSoundtrack</a>: </td><td id="target_NowPlaying_IsSoundtrack">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetSoundtrackPictureUrls">NowPlaying_GetSoundtrackPictureUrls</a>: </td><td id="target_NowPlaying_GetSoundtrackPictureUrls">[result]</td></tr>
+        <tr><td>Library_GetDevicePersistentId: </td><td id="target_Library_GetDevicePersistentId">[result]</td></tr>
+
 
         <tr><td><a href="javascript:" id="link_TestRun">Playlist_TestRun</a>: </td><td id="target_TestRun">[result]</td></tr>
 

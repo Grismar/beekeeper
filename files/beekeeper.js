@@ -234,6 +234,16 @@ var Beekeeper = {
     },
 
     /**
+     * @static {int} DeviceIdType
+     */
+    DeviceIdType: {
+        GooglePlay: 1,
+        AppleDevice: 2,
+        GooglePlay2: 3,
+        AppleDevice2: 4
+    },
+
+    /**
      * @static {string} basePath
      */
     basePath: "/",
@@ -377,7 +387,7 @@ var Beekeeper = {
     /** 
      * Retrieves a single property for the give source file. Property is reported to callback.
      * Library_GetFileProperty (string sourceFileUrl, FilePropertyType type, function (string) callback)
-     * @param {string} sourceFileUrl
+     * @param {string} sourceFileUrl Path to music file in database
      * @param {int} type
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
@@ -469,6 +479,7 @@ var Beekeeper = {
 
     /** 
      * Starts a query to retrieve files/tracks from library; @see Library_QueryGetNextFile.
+     * Note: if you need all these files at once instead of one at a time, use @see Library_QueryFilesEx
      * Library_QueryFiles (string query, function (boolean) callback)
      * @param {string} query Query string to start query with; either "domain=SelectedFiles", "domain=DisplayedFiles"
      *   or an auto playlist xml document
@@ -931,6 +942,7 @@ var Beekeeper = {
     /** 
      * Runs a query against the Now Playing list (including tracks not in library).
      * Follow up with calls to NowPlayingList_QueryGetNextFile.
+     * Note: if you need all these files at once instead of one at a time, use @see NowPlayingList_QueryFilesEx
      * NowPlayingList_QueryFiles (string query, function (boolean) callback)
      * @param {string} query Query string to start query with; either "domain=SelectedFiles", "domain=DisplayedFiles"
      *   or an auto playlist xml document
@@ -1065,6 +1077,8 @@ var Beekeeper = {
 
     /** 
      * Runs a query for all files/tracks in a specific playlist. Follow up with calls to @see Playlist_QueryGetNextFile.
+     * Note: if you need all these files at once instead of one at a time, use @see Playlist_QueryFilesEx
+     * Playlist_QueryFiles (string playlistUrl, function (boolean) callback)
      * @param {string} playlistUrl The path to the playlist (from MusicBee local perspective).
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
      */
@@ -1619,6 +1633,7 @@ var Beekeeper = {
 
     /** 
      * Removes a single file/track from a specific playlist, at a specific index.
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
      * @param {string} playlistUrl The path to the playlist (from MusicBee local perspective).
      * @param {int} index Index to remove track at (0 is the top of the list).
      * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
@@ -1723,10 +1738,11 @@ var Beekeeper = {
         )
     },
 
-    /** 
-     * Moves a set of specific files/tracks to a target position.
+    /**
+     * Moves a set of specific files/tracks to a target position on the Now Playing list.
      * Note: behavior of this function may see erratic, but remember that toIndex currently uses -1 as the top index
      * and that insertion may be confusing if the target index is among the source indices.
+     * NowPlayingList_MoveFiles (int[] fromIndices, int toIndex, function(boolean) callback)
      * @param {int[]} fromIndices The positions of the files/tracks to move. (0 is top)
      * @param {int} toIndex The position to move the tracks to. (-1[!] is top, not counting the playing track)
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
@@ -1739,7 +1755,24 @@ var Beekeeper = {
         )
     },
 
-    /** 
+    /**
+     * The same as @see NowPlayingList_MoveFiles, but without the unexpected behavior. Performance may be worse as a
+     * result, but behavior is predictable. 0 is the top index, order is maintained and the order in the fromIndices
+     * array is used to determine the insertion order.
+     * NowPlayingList_MoveFiles_BK (int[] fromIndices, int toIndex, function(boolean) callback)
+     * @param {int[]} fromIndices The positions of the files/tracks to move. (0 is top)
+     * @param {int} toIndex The position to move the tracks to. (-1[!] is top, not counting the playing track)
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    NowPlayingList_MoveFiles_BK: function (fromIndices, toIndex, callback) {
+        this.Call(
+            'NowPlayingList_MoveFiles_BK',
+            { fromIndices: fromIndices, toIndex: toIndex },
+            callback
+        )
+    },
+
+    /**
      * Retrieves the location of the index-th artwork of a specific file/track.
      * Note: causes MusicBee to create a temporary file with the artwork if none was present, or the artwork was
      * embedded in the track. The callback is passed a url that points to the image, which will be available until
@@ -1842,6 +1875,7 @@ var Beekeeper = {
      * Note: retrieval of local files causes MusicBee to create a temporary file with the artwork if none was present.
      * The callback is passed an array of urls that point to the images, which will be available until MusicBee is
      * restarted, or the image is no longer available to MusicBee, for local images.
+     * NowPlaying_GetArtistPictureUrls (string artistName, boolean localOnly, function(string[]) callback)
      * @param {string} artistName The name of the artist for which to retrieve a thumb.
      * @param {boolean} localOnly Whether to include only local images, or to include images from the net as well.
      * @param {function(object)} callback Callback function for method, expecting a (string[]) JSON object
@@ -1860,6 +1894,7 @@ var Beekeeper = {
      * Note: retrieval of local files causes MusicBee to create a temporary file with the artwork if none was present.
      * The callback is passed an array of urls that point to the images, which will be available until MusicBee is
      * restarted, or the image is no longer available to MusicBee, for local images.
+     * NowPlaying_GetArtistPictureUrls (boolean localOnly, function(string[]) callback)
      * @param {boolean} localOnly Whether to include only local images, or to include images from the net as well.
      * @param {function(object)} callback Callback function for method, expecting a (string[]) JSON object
      */
@@ -1873,6 +1908,8 @@ var Beekeeper = {
 
     /** 
      * Appends a set of new sourceFileUrls to a playlist.
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
+     * Playlist_AppendFiles (string playlistUrl, string[] sourceFileUrls, function(boolean) callback)
      * @param {string} playlistUrl The location of the playlist to append to.
      * @param {string[]} sourceFileUrls An array of locations to append to the playlist.
      * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
@@ -1911,6 +1948,147 @@ var Beekeeper = {
         this.Call(
             'Sync_FileEnd',
             { filename: filename, success: success, errorMessage: errorMessage },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves an array of filenames (i.e. sourceFileUrls) from the library matching a specified query.
+     * Library_QueryFilesEx (string query, function (string[]) callback)
+     * @param {string} query Query string to select files; either "domain=SelectedFiles", "domain=DisplayedFiles"
+     *   or an auto playlist xml document
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    Library_QueryFilesEx: function(query, callback) {
+        this.Call(
+            'Library_QueryFilesEx',
+            { query: query },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves an array of filenames (i.e. sourceFileUrls) from the Now Playing List matching a specified query.
+     * NowPlayingList_QueryFilesEx (string query, function (string[]) callback)
+     * @param {string} query Query string to select files; either "domain=SelectedFiles", "domain=DisplayedFiles"
+     *   or an auto playlist xml document
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    NowPlayingList_QueryFilesEx: function(query, callback) {
+        this.Call(
+            'NowPlayingList_QueryFilesEx',
+            { query: query },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the entire array of filenames (i.e. sourceFileUrls) for a specified playlist.
+     * Playlist_QueryFilesEx (string playlistUrl, function (string[]) callback)
+     * @param {string} playlistUrl The location of the playlist for which to get the files/tracks.
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    Playlist_QueryFilesEx: function (playlistUrl, callback) {
+        this.Call(
+            'Playlist_QueryFilesEx',
+            { playlistUrl: playlistUrl },
+            callback
+        )
+    },
+
+    /**
+     * Moves a set of specific files/tracks to a target position on a specific playlist.
+     * Note: behavior of this function may see erratic, but remember that toIndex currently uses -1 as the top index
+     * and that insertion may be confusing if the target index is among the source indices.
+     * Note: in addition Playlist_MoveFiles does not accept -1 as the top index, so it's currently unable to move
+     * tracks to the top position.
+     * Playlist_MoveFiles (string playlistUrl, int[] fromIndices, int toIndex, function(boolean) callback)
+     * @param {string} playlistUrl The location of the playlist to modify.
+     * @param {int[]} fromIndices The positions of the files/tracks to move. (0 is top)
+     * @param {int} toIndex The position to move the tracks to. (-1[!] is top, not counting the playing track)
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_MoveFiles: function (playlistUrl, fromIndices, toIndex, callback) {
+        this.Call(
+            'Playlist_MoveFiles',
+            { playlistUrl: playlistUrl, fromIndices: fromIndices, toIndex: toIndex },
+            callback
+        )
+    },
+
+    /**
+     * The same as @see Playlist_MoveFiles, but without the unexpected behavior. Performance may be worse as a result,
+     * but behavior is predictable. 0 is the top index, order is maintained and the order in the fromIndices array is
+     * used to determine the insertion order.
+     * Playlist_MoveFiles_BK (string playlistUrl, int[] fromIndices, int toIndex, function(boolean) callback)
+     * @param {string} playlistUrl The location of the playlist to modify.
+     * @param {int[]} fromIndices The positions of the files/tracks to move. (0 is top)
+     * @param {int} toIndex The position to move the tracks to.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_MoveFiles_BK: function (playlistUrl, fromIndices, toIndex, callback) {
+        this.Call(
+            'Playlist_MoveFiles_BK',
+            { playlistUrl: playlistUrl, fromIndices: fromIndices, toIndex: toIndex },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to start playing a specific playlist, replacing the Now Playing list.
+     * Playlist_PlayNow (string playlistUrl, function(boolean) callback)
+     * @param {string} playlistUrl Location of the playlist to start playing.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_PlayNow: function(playlistUrl, callback) {
+        this.Call(
+            'Playlist_PlayNow',
+            { playlistUrl: playlistUrl },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves whether or not the currently playing file/track is a soundtrack.
+     * NowPlaying_IsSoundtrack (function(boolean) callback)
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    NowPlaying_IsSoundtrack: function(callback) {
+        this.Call(
+            'NowPlaying_IsSoundtrack',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the images for a playing soundtrack. (Use @see NowPlaying_IsSoundtrack to check for soundtrack)
+     * Note: retrieval of local files causes MusicBee to create a temporary file with the artwork if none was present.
+     * The callback is passed an array of urls that point to the images, which will be available until MusicBee is
+     * restarted, or the image is no longer available to MusicBee, for local images.
+     * NowPlaying_GetSoundtrackPictureUrls (boolean localOnly, function (string[]) callback)
+     * @param {boolean} localOnly Whether to limit the result to local files, or to include results from the net.
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    NowPlaying_GetSoundtrackPictureUrls: function(localOnly, callback) {
+        this.Call(
+            'NowPlaying_GetSoundtrackPictureUrls',
+            { localOnly: localOnly },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the persistent id for a specific file/track on a specific device type.
+     * Library_GetDevicePersistentId (string sourceFileUrl, idType, function(string) callback)
+     * @param {string} sourceFileUrl Path to music file in database
+     * @param {int} idType The devicetype for which to retrieve the persistent id.
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    Library_GetDevicePersistentId: function(sourceFileUrl, idType, callback) {
+        this.Call(
+            'Library_GetDevicePersistentId',
+            { sourceFileUrl: sourceFileUrl, idType: idType },
             callback
         )
     },
