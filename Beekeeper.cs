@@ -63,6 +63,9 @@ namespace MusicBeePlugin
         /// This the path on the server for long polling calls.
         /// </summary>
         private const string longPollingPath = "/events";
+        private const string picturePath = "/picture";
+        private const string filePath = "/file";
+        private const string statusPath = "/status";
 
         private bool _IsRunning;
         /// <summary>
@@ -390,6 +393,23 @@ namespace MusicBeePlugin
 
         public Plugin.PluginInfo about = new Plugin.PluginInfo();
 
+        public string UrlToLink(string url)
+        {
+            if (url.ToLower().StartsWith("http://"))
+            {
+                // already a link (i.e. url suitable for Web API)
+                return url;
+            }
+            else
+            {
+                // url encode filename local to MusicBee and save for later reference
+                url = HttpUtility.UrlEncode(url);
+                tempUrls.Add(url);
+                // pass usable url for web client
+                return "/picture/" + url;
+            }
+        }
+
         /// <summary>
         /// The event type for handling requests to call the API.
         /// </summary>
@@ -398,7 +418,9 @@ namespace MusicBeePlugin
         /// <param name="parameters">The parameters, if any, to pass to the called method.</param>
         public delegate bool CallRequest(HTTPServerResponse response, string name, Dictionary<string, object> parameters);
         /// <summary>
-        /// The main handler for handling CallRequest events.
+        /// The main handler for handling CallRequest events. Selects the right method on the Plugin API, performs type conversion 
+        /// and provides some double implementations working around some naming issues. Also provides a number of alternative 
+        /// methods suitable for use on a web API.
         /// </summary>
         /// <param name="response">The HTTPServerResponse on which the response should be sent.</param>
         /// <param name="name">The name of the method to call (as it's exposed by Beekeeper).</param>
@@ -407,8 +429,7 @@ namespace MusicBeePlugin
         {
             // result to send back on response
             object result = null;
-            // temporary variables to prepare API calls with
-            Plugin.FilePropertyType fptype;
+            // temporary variables to prepare for specific API calls
             string sourceFileUrl;
             string value;
             string query;
@@ -434,7 +455,6 @@ namespace MusicBeePlugin
             string[] ids;
             string[] values;
             string[] cachedFiles;
-            SyncDelta syncDelta;
             int index;
             int position;
             int count;
@@ -455,6 +475,8 @@ namespace MusicBeePlugin
             bool success;
             bool cancelDownload;
             DateTime updatedSince;
+            SyncDelta syncDelta;
+            Plugin.FilePropertyType fptype;
             Plugin.MetaDataType field;
             Plugin.MetaDataType[] fields;
             Plugin.SkinElement element;
@@ -709,7 +731,7 @@ namespace MusicBeePlugin
                         result = mbApiInterface.Playlist_QueryGetNextFile();
                         break;
                     case "MB_GetWindowHandle": // void ()
-                        throw new Exception("MB_GetWindowHandle is meaningless or impractical in web context.");
+                        throw new Exception("MB_GetWindowHandle is meaningless or impractical in web context. No replacement available.");
                     case "MB_RefreshPanels": // boolean ()
                         mbApiInterface.MB_RefreshPanels();
                         result = true;
@@ -717,28 +739,28 @@ namespace MusicBeePlugin
                     case "MB_SendNotification": // ()
                         throw new Exception("MB_SendNotification is meaningless or impractical in web context. (Notifications not [yet] implemented as part of events)");
                     case "MB_AddMenuItem": // ()
-                        throw new Exception("MB_AddMenuItem is meaningless or impractical in web context.");
+                        throw new Exception("MB_AddMenuItem is meaningless or impractical in web context. No replacement available.");
                     case "Setting_GetFieldName": // string (MetaDataType field)
                         field = (Plugin.MetaDataType)parameters["field"];
                         result = mbApiInterface.Setting_GetFieldName(field);
                         break;
             // [Obsolete("Use Library_QueryFilesEx")]
                     case "Library_QueryGetAllFiles": // ()
-                        throw new Exception("Library_QueryGetAllFiles is obsolete. Use Library_QueryFilesEx");
+                        throw new Exception("Library_QueryGetAllFiles is obsolete. Use Library_QueryFilesEx.");
             // [Obsolete("Use NowPlayingList_QueryFilesEx")]
                     case "NowPlayingList_QueryGetAllFiles": // ()
-                        throw new Exception("NowPlayingList_QueryGetAllFiles is obsolete. Use Playlist_QueryFilesEx");
+                        throw new Exception("NowPlayingList_QueryGetAllFiles is obsolete. Use Playlist_QueryFilesEx.");
             // [Obsolete("Use Playlist_QueryFilesEx")]
                     case "Playlist_QueryGetAllFiles": // ()
-                        throw new Exception("Playlist_QueryGetAllFiles is obsolete. Use Playlist_QueryFilesEx");
+                        throw new Exception("Playlist_QueryGetAllFiles is obsolete. Use Playlist_QueryFilesEx.");
                     case "MB_CreateBackgroundTask": // ()
-                        throw new Exception("MB_CreateBackgroundTask is meaningless or impractical in web context.");
+                        throw new Exception("MB_CreateBackgroundTask is meaningless or impractical in web context. No replacement available.");
                     case "MB_SetBackgroundTaskMessage": // ()
-                        throw new Exception("MB_SetBackgroundTaskMessage is meaningless or impractical in web context.");
+                        throw new Exception("MB_SetBackgroundTaskMessage is meaningless or impractical in web context. No replacement available.");
                     case "MB_RegisterCommand": // ()
-                        throw new Exception("MB_RegisterCommand is meaningless or impractical in web context.");
+                        throw new Exception("MB_RegisterCommand is meaningless or impractical in web context. No replacement available.");
                     case "Setting_GetDefaultFont": // ()
-                        throw new Exception("Setting_GetDefaultFont is meaningless or impractical in web context. Use Setting_GetDefaultFontName to retrieve font name.");
+                        throw new Exception("Setting_GetDefaultFont is meaningless or impractical in web context. Use Setting_GetDefaultFontName_BK to retrieve font name.");
             // Unique to Beekeeper, replaces Setting_GetDefaultFont for web API
                     case "Setting_GetDefaultFontName_BK": // string ()
                         result = mbApiInterface.Setting_GetDefaultFont().Name;
@@ -777,15 +799,15 @@ namespace MusicBeePlugin
                         result = mbApiInterface.NowPlayingList_GetFileTag(index, field);
                         break;
                     case "NowPlaying_GetSpectrumData": // ()
-                        throw new Exception("NowPlaying_GetSpectrumData is meaningless or impractical in web context.");
+                        throw new Exception("NowPlaying_GetSpectrumData is meaningless or impractical in web context. No replacement available.");
                     case "NowPlaying_GetSoundGraph": // ()
-                        throw new Exception("NowPlaying_GetSoundGraph is meaningless or impractical in web context.");
+                        throw new Exception("NowPlaying_GetSoundGraph is meaningless or impractical in web context. No replacement available.");
                     case "MB_GetPanelBounds": // ()
-                        throw new Exception("MB_GetPanelBounds is meaningless or impractical in web context.");
+                        throw new Exception("MB_GetPanelBounds is meaningless or impractical in web context. No replacement available.");
                     case "MB_AddPanel": // ()
-                        throw new Exception("MB_AddPanel is meaningless or impractical in web context.");
+                        throw new Exception("MB_AddPanel is meaningless or impractical in web context. No replacement available.");
                     case "MB_RemovePanel": // ()
-                        throw new Exception("MB_RemovePanel is meaningless or impractical in web context.");
+                        throw new Exception("MB_RemovePanel is meaningless or impractical in web context. No replacement available.");
                     // not canon, but fits American English spelling
                     case "MB_GetLocalization": // string (string id, string defaultText)
                     // canon, fits British English spelling
@@ -843,25 +865,21 @@ namespace MusicBeePlugin
                         offset = (int)parameters["offset"];
                         result = mbApiInterface.NowPlayingList_GetNextIndex(offset);
                         break;
+                    case "NowPlaying_GetArtistPicture": // string (int fadingPercent)
+                        throw new Exception("NowPlaying_GetArtistPicture is meaningless or impractical in web context. Use NowPlaying_GetArtistPictureLink_BK to retrieve image.");
             // Unique to Beekeeper, replaces NowPlaying_GetArtistPicture for web API
-                    case "NowPlaying_GetArtistPictureUrl_BK": // string (int fadingPercent)
+                    case "NowPlaying_GetArtistPictureLink_BK": // string (int fadingPercent)
                         fadingPercent = (int)parameters["fadingPercent"];
                         // MusicBee returns file location for (temporary) image file
                         filename = mbApiInterface.NowPlaying_GetArtistPicture(fadingPercent);
-                        // url encode filename and save for later reference
-                        url = HttpUtility.UrlEncode(filename);
-                        tempUrls.Add(url);
-                        // pass usable url for web client
-                        result = "/picture/"+url;
+                        result = UrlToLink(filename);
                         break;
-            // Unique to Beekeeper, replaces NowPlaying_GetDownloadedArtworkUrl for web API
-                    case "NowPlaying_GetDownloadedArtworkUrl_BK": // string ()
+                    case "NowPlaying_GetDownloadedArtwork": // string ()
+                        throw new Exception("NowPlaying_GetDownloadedArtwork is meaningless or impractical in web context. Use NowPlaying_GetDownloadedArtworkLink_BK to retrieve image.");
+            // Unique to Beekeeper, replaces NowPlaying_GetDownloadedArtwork for web API
+                    case "NowPlaying_GetDownloadedArtworkLink_BK": // string ()
                         filename = mbApiInterface.NowPlaying_GetDownloadedArtwork();
-                        // url encode filename and save for later reference
-                        url = HttpUtility.UrlEncode(filename);
-                        tempUrls.Add(url);
-                        // pass usable url for web client
-                        result = "/picture/" + url;
+                        result = UrlToLink(filename);
                         break;
             // api version 16
                     case "MB_ShowNowPlayingAssistant": // bool ()
@@ -879,7 +897,7 @@ namespace MusicBeePlugin
                         break;
             // api version 19
                     case "MB_CreateParameterisedBackgroundTask": // ()
-                        throw new Exception("MB_CreateParameterisedBackgroundTask is meaningless or impractical in web context.");
+                        throw new Exception("MB_CreateParameterisedBackgroundTask is meaningless or impractical in web context. No replacement available.");
                     case "Setting_GetLastFmUserId": // string ()
                         result = mbApiInterface.Setting_GetLastFmUserId();
                         break;
@@ -976,12 +994,12 @@ namespace MusicBeePlugin
                         break;
             // api version 23
                     case "MB_SetPanelScrollableArea": // ()
-                        throw new Exception("MB_SetPanelScrollableArea is meaningless or impractical in web context.");
+                        throw new Exception("MB_SetPanelScrollableArea is meaningless or impractical in web context. No replacement available.");
             // api version 24
                     case "MB_InvokeCommand": // ()
-                        throw new Exception("MB_InvokeCommand is meaningless or impractical in web context.");
+                        throw new Exception("MB_InvokeCommand is meaningless or impractical in web context. No replacement available.");
                     case "MB_OpenFilterInTab": // ()
-                        throw new Exception("MB_OpenFilterInTab is meaningless or impractical in web context.");
+                        throw new Exception("MB_OpenFilterInTab is meaningless or impractical in web context. No replacement available.");
             // api version 25
                     case "MB_SetWindowSize": // bool (int width, int height)
                         width = (int)parameters["width"];
@@ -989,6 +1007,9 @@ namespace MusicBeePlugin
                         result = mbApiInterface.MB_SetWindowSize(width, height);
                         break;
                     case "Library_GetArtistPicture": // string (string artistName, int fadingPercent, int fadingColor/fadingColour)
+                        throw new Exception("Library_GetArtistPicture is meaningless or impractical in web context. Use Library_GetArtistPictureLink_BK to retrieve image.");
+            // Unique to Beekeeper, replaces Library_GetArtistPicture for web API
+                    case "Library_GetArtistPictureLink_BK": // string (string artistName, int fadingPercent, int fadingColor/fadingColour)
                         artistName = (string)parameters["artistName"];
                         fadingPercent = (int)parameters["fadingPercent"];
                         if (parameters.ContainsKey("fadingColour"))
@@ -998,7 +1019,10 @@ namespace MusicBeePlugin
                             // not canon, but fits normal naming scheme
                             parameterName = "fadingColor";
                         fadingColor = (int)parameters[parameterName];
-                        result = mbApiInterface.Library_GetArtistPicture(artistName, fadingPercent, fadingColor);
+
+                        // MusicBee returns file location for (temporary) image file
+                        filename = mbApiInterface.Library_GetArtistPicture(artistName, fadingPercent, fadingColor);
+                        result = UrlToLink(filename);
                         break;
                     case "Pending_GetFileUrl": // string ()
                         result = mbApiInterface.Pending_GetFileUrl();
@@ -1023,55 +1047,100 @@ namespace MusicBeePlugin
                         result = mbApiInterface.Player_GetButtonEnabled(button);
                         break;
             // api version 27
+                    // not canon, but fits 'To' for index functions
+                    case "NowPlayingList_MoveFilesTo": // bool (int[] fromIndices, int toIndex)
+                    // canon
                     case "NowPlayingList_MoveFiles": // bool (int[] fromIndices, int toIndex)
-                        fromIndices = (int[])parameters["fromIndices"];
+                        // cast the arraylist explictly to int and convert to an array
+                        fromIndices = ((System.Collections.ArrayList)parameters["fromIndices"]).Cast<int>().ToArray();
                         toIndex = (int)parameters["toIndex"];
                         result = mbApiInterface.NowPlayingList_MoveFiles(fromIndices, toIndex);
                         break;
             // api version 28
                     case "Library_GetArtworkUrl": // string (string sourceFileUrl, int index)
+                        throw new Exception("Library_GetArtworkUrl is meaningless or impractical in web context. Use Library_GetArtworkUrlLink_BK to retrieve image.");
+            // Unique to Beekeeper, replaces Library_GetArtworkUrl for web API
+                    case "Library_GetArtworkUrlLink_BK": // string (string sourceFileUrl, int index)
                         sourceFileUrl = (string)parameters["sourceFileUrl"];
                         index = (int)parameters["index"];
-                        result = mbApiInterface.Library_GetArtworkUrl(sourceFileUrl, index);
+                        // MusicBee returns file location for (temporary) image file
+                        filename = mbApiInterface.Library_GetArtworkUrl(sourceFileUrl, index);
+                        result = UrlToLink(filename);
                         break;
                     case "Library_GetArtistPictureThumb": // string (string artistName)
+                        throw new Exception("Library_GetArtistPictureThumb is meaningless or impractical in web context. Use Library_GetArtistPictureThumbLink_BK to retrieve image.");
+                    // Unique to Beekeeper, replaces Library_GetArtistPictureThumb for web API
+                    case "Library_GetArtistPictureThumbLink_BK": // string (string artistName)
                         artistName = (string)parameters["artistName"];
-                        result = mbApiInterface.Library_GetArtistPictureThumb(artistName);
+                        // MusicBee returns file location for (temporary) image file
+                        filename = mbApiInterface.Library_GetArtistPictureThumb(artistName);
+                        result = UrlToLink(filename);
                         break;
                     case "NowPlaying_GetArtworkUrl": // string ()
-                        result = mbApiInterface.NowPlaying_GetArtworkUrl();
+                        throw new Exception("NowPlaying_GetArtworkUrl is meaningless or impractical in web context. Use NowPlaying_GetArtworkUrlLink_BK to retrieve image.");
+            // Unique to Beekeeper, replaces Library_GetArtworkUrl for web API
+                    case "NowPlaying_GetArtworkUrlLink_BK": // string ()
+                        // MusicBee returns file location for (temporary) image file
+                        filename = mbApiInterface.NowPlaying_GetArtworkUrl();
+                        result = UrlToLink(filename);
                         break;
                     case "NowPlaying_GetDownloadedArtworkUrl": // string ()
-                        result = mbApiInterface.NowPlaying_GetDownloadedArtworkUrl();
+                        throw new Exception("NowPlaying_GetDownloadedArtworkUrl is meaningless or impractical in web context. Use NowPlaying_GetDownloadedArtworkUrlLink_BK to retrieve image.");
+            // Unique to Beekeeper, replaces Library_GetArtworkUrl for web API
+                    case "NowPlaying_GetDownloadedArtworkUrlLink_BK": // string ()
+                        // MusicBee returns file location for (temporary) image file
+                        filename = mbApiInterface.NowPlaying_GetDownloadedArtworkUrl();
+                        result = UrlToLink(filename);
                         break;
-                    case "NowPlaying_GetArtistPictureThumb": // string ()
-                        result = mbApiInterface.NowPlaying_GetArtistPictureThumb();
+            // api version 28
+                    case "NowPlaying_GetArtistPictureThumb": // string (string artistName)
+                        throw new Exception("NowPlaying_GetArtistPictureThumb is meaningless or impractical in web context. Use NowPlaying_GetArtistPictureThumbLink_BK to retrieve image.");
+                    // Unique to Beekeeper, replaces NowPlaying_GetArtistPictureThumb for web API
+                    case "NowPlaying_GetArtistPictureThumbLink_BK": // string (string artistName)
+                        // MusicBee returns file location for (temporary) image file
+                        filename = mbApiInterface.NowPlaying_GetArtistPictureThumb();
+                        result = UrlToLink(filename);
                         break;
             // api version 29
                     case "Playlist_IsInList": // bool (string playlistUrl, string filename)
                         playlistUrl = (string)parameters["playlistUrl"];
-                        filename = (string)parameters["filename"];
+                        if (parameters.ContainsKey("sourceFileUrl"))
+                            // canon, deviates from normal naming scheme
+                            parameterName = "sourceFileUrl";
+                        else
+                            // not canon, but fits normal naming scheme
+                            parameterName = "filename";
+                        filename = (string)parameters[parameterName];
                         result = mbApiInterface.Playlist_IsInList(playlistUrl, filename);
                         break;
             // api version 30
                     case "Library_GetArtistPictureUrls": // string[] (string artistName, bool localOnly)
+                        // TODO Fix local url's 
                         artistName = (string)parameters["artistName"];
                         localOnly = (bool)parameters["localOnly"];
                         urls = new string[0];
                         mbApiInterface.Library_GetArtistPictureUrls(artistName, localOnly, ref urls);
-                        result = urls;
+                        // convert all (local) urls to weblinks (following MusicBee naming)
+                        result = urls.Select(UrlToLink);
                         break;
                     case "NowPlaying_GetArtistPictureUrls": // string[] (bool localOnly)
                         localOnly = (bool)parameters["localOnly"];
                         urls = new string[0];
                         mbApiInterface.NowPlaying_GetArtistPictureUrls(localOnly, ref urls);
-                        result = urls;
+                        // convert all (local) urls to weblinks (following MusicBee naming)
+                        result = urls.Select(UrlToLink);
                         break;
             // api version 31
                     case "Playlist_AppendFiles": // bool (string playlistUrl, string[] filenames)
                         playlistUrl = (string)parameters["playlistUrl"];
                         // cast the arraylist explictly to string and convert to an array
-                        filenames = ((System.Collections.ArrayList)parameters["filenames"]).Cast<string>().ToArray();
+                        if (parameters.ContainsKey("filenames"))
+                            // canon, deviates from normal naming scheme
+                            parameterName = "filenames";
+                        else
+                            // not canon, but fits normal naming scheme
+                            parameterName = "sourceFileUrls";
+                        filenames = ((System.Collections.ArrayList)parameters[parameterName]).Cast<string>().ToArray();
                         result = mbApiInterface.Playlist_AppendFiles(playlistUrl, filenames);
                         break;
             // api version 32
@@ -1192,7 +1261,7 @@ namespace MusicBeePlugin
                         break;
             // api version 43
                     case "MB_AddTreeNode": // ()
-                        throw new Exception("MB_AddTreeNode is meaningless or impractical in web context.");
+                        throw new Exception("MB_AddTreeNode is meaningless or impractical in web context. No replacement available.");
                     case "MB_DownloadFile": // ()
                         url = (string)parameters["url"];
                         target = (Plugin.DownloadTarget)parameters["target"];
@@ -1325,7 +1394,7 @@ namespace MusicBeePlugin
                             Properties.Resources.favicon.Save(s);
                         }
                         break;
-                    case "/status":
+                    case statusPath:
                         // at this point, it should be assigned, but check anyway to avoid silent death
                         if (statusRequest != null)
                         {
@@ -1350,14 +1419,14 @@ namespace MusicBeePlugin
                         }
                         break;
                     default:
-                        // if the location starts with /file/, have the file request handler deal with it
-                        if (location.Substring(0, 6) == "/file/")
+                        // if the location starts with filePath/, have the file request handler deal with it
+                        if (location.StartsWith(filePath+'/'))
                         {
                             fileRequest(response, location.Substring(6));
                         }
                         else
                         {
-                            if (location.Substring(0, 9) == "/picture/")
+                            if (location.StartsWith(picturePath+'/'))
                             {
                                 tempRequest(response, location.Substring(9));
                             }

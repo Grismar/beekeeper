@@ -186,6 +186,13 @@ var Beekeeper = {
         Rating: 3
     },
 
+    PlayButtonType: {
+        PreviousTrack: 0,
+        PlayPause: 1,
+        NextTrack: 2,
+        Stop: 3
+    },
+
     basePath: "/",
 
     /**
@@ -207,6 +214,8 @@ var Beekeeper = {
     },
 
 // Definition of supported MusicBee methods
+// Each definition maps the parameters to an object with attributes of the same name and provides some documentation.
+// The supported methods are the preferred implementations of standard MusicBee Plugin API methods.
 
     /**
      * Retrieves the persistent storage path for MusicBee. Path is reported to callback.
@@ -1316,19 +1325,19 @@ var Beekeeper = {
     },
 
     /**
-     * Causes MusicBee to try and retrieve an image for the artist from the web, saving it in a temporary location.
-     * The callback is passed a url that points to the image, which will be available until MusicBee is restarted,
-     * or the image is no longer available to MusicBee.
+     * Causes MusicBee to try and retrieve an image for the currently playing artist from the web, saving it in a
+     * temporary location. The callback is passed a url that points to the image, which will be available until
+     * MusicBee is restarted, or the image is no longer available to MusicBee.
      * Note: not part of the original MusicBee Plugin API (not canon), replacing NowPlaying_GetArtistPicture.
      * Note: the url points to a jpeg image, thought the file extension is typically .dat or .tmp
      * Note: apply fadingPercent = 0 to avoid temporary images being generated for every call
-     * NowPlaying_GetArtistPictureUrl_BK (int fadingPercent, function (string) callback)
+     * NowPlaying_GetArtistPictureLink_BK (int fadingPercent, function (string) callback)
      * @param {int} fadingPercent A percentage by which the image is faded between 0% and 50% opaque. (0 for no change)
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    NowPlaying_GetArtistPictureUrl_BK: function (fadingPercent, callback) {
+    NowPlaying_GetArtistPictureLink_BK: function (fadingPercent, callback) {
         this.Call(
-            'NowPlaying_GetArtistPictureUrl_BK',
+            'NowPlaying_GetArtistPictureLink_BK',
             { fadingPercent: fadingPercent },
             callback
         )
@@ -1339,12 +1348,12 @@ var Beekeeper = {
      * The callback is passed a url that points to the image, which will be available until MusicBee is restarted,
      * or the image is no longer available to MusicBee.
      * Note: not part of the original MusicBee Plugin API (not canon), replacing NowPlaying_GetDownloadedArtwork.
-     * NowPlaying_GetDownloadedArtworkUrl_BK (function (string) callback)
+     * NowPlaying_GetDownloadedArtworkLink_BK (function (string) callback)
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    NowPlaying_GetDownloadedArtworkUrl_BK: function (callback) {
+    NowPlaying_GetDownloadedArtworkLink_BK: function (callback) {
         this.Call(
-            'NowPlaying_GetDownloadedArtworkUrl_BK',
+            'NowPlaying_GetDownloadedArtworkLink_BK',
             {},
             callback
         )
@@ -1574,6 +1583,290 @@ var Beekeeper = {
         this.Call(
             'Playlist_RemoveAt',
             { playlistUrl: playlistUrl, index: index },
+            callback
+        )
+    },
+
+    /**
+     * Resize the MusicBee window to a specific width and height.
+     * TODO doesn't appear to be a fully functional call, MusicBee gets resized, but loses content
+     * MB_SetWindowSize (int width, int height, function (boolean) callback)
+     * @param {int} width Target width in pixels.
+     * @param {int} height Target height in pixels.
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    MB_SetWindowSize: function (width, height, callback) {
+        this.Call(
+            'MB_SetWindowSize',
+            { width: width, height: height },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to try and retrieve an image for a specific artist from the web, saving it in a
+     * temporary location. The callback is passed a url that points to the image, which will be available until
+     * MusicBee is restarted, or the image is no longer available to MusicBee.
+     * Library_GetArtistPictureLink_BK (string artistName, int fadingPercent, int fadingColor, function (string) callback)
+     * @param {string} artistName The name of the artist for which to retrieve an image.
+     * @param {int} fadingPercent The percentage by which to fade the image into a specific color.
+     * @param {int} fadingColor The color to fade into.
+     * @param {function(object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Library_GetArtistPictureLink_BK: function (artistName, fadingPercent, fadingColor, callback) {
+        this.Call (
+            'Library_GetArtistPictureLink_BK',
+            { artistName: artistName, fadingPercent: fadingPercent, fadingColor: fadingColor },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the sourceFileUrl for the current (or 'pending') file/track.
+     * Note: a track can be current (playing or not) without being in the Now Playing list.
+     * Pending_GetFileUrl (function (string) callback)
+     * @param {function(object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Pending_GetFileUrl: function (callback) {
+        this.Call(
+            'Pending_GetFileUrl',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves a single property for the current (or 'pending') file/track. Property is reported to callback.
+     * Note: a track can be current (playing or not) without being in the Now Playing list.
+     * Pending_GetFileProperty (FilePropertyType type, function (string) callback)
+     * @param {int} type
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Pending_GetFileProperty: function (type, callback) {
+        this.Call(
+            'Pending_GetFileProperty',
+            { type: type },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves a single  metadata field (tag) for the current (or 'pending') file/track. Callback gets string value.
+     * Note: a track can be current (playing or not) without being in the Now Playing list.
+     * Pending_GetFileTag (MetaDataType type, function (string) callback)
+     * @param {int} field
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Pending_GetFileTag: function (field, callback) {
+        this.Call(
+            'Pending_GetFileTag',
+            { field: field },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves whether a button in MusicBee is enabled. The button is specified as a PlayButtonType.
+     * Player_GetButtonEnabled (PlayButtonType button, function (boolean) callback)
+     * @param {int} button The PlayButtonType button for which to retrieve the enabled status.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Player_GetButtonEnabled: function (button, callback) {
+        this.Call(
+            'Player_GetButtonEnabled',
+            { button: button },
+            callback
+        )
+    },
+
+    /**
+     * Moves a set of specific files/tracks to a target position.
+     * Note: behavior of this function may see erratic, but remember that toIndex currently uses -1 as the top index
+     * and that insertion may be confusing if the target index is among the source indices.
+     * @param {int[]} fromIndices The positions of the files/tracks to move. (0 is top)
+     * @param {int} toIndex The position to move the tracks to. (-1[!] is top, not counting the playing track)
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    NowPlayingList_MoveFiles: function (fromIndices, toIndex, callback) {
+        this.Call(
+            'NowPlayingList_MoveFiles',
+            { fromIndices: fromIndices, toIndex: toIndex },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the location of the index-th artwork of a specific file/track.
+     * Note: causes MusicBee to create a temporary file with the artwork if none was present, or the artwork was
+     * embedded in the track. The callback is passed a url that points to the image, which will be available until
+     * MusicBee is restarted, or the image is no longer available to MusicBee.
+     * Note: use @see Library_GetArtwork instead when possible, to avoid unnecessary temporary file creation.
+     * Library_GetArtworkUrlLink_BK (string sourceFileUrl, int index, function (string) callback)
+     * @param {string} sourceFileUrl Location (local to MusicBee) of file for which to retrieve artwork location.
+     * @param {int} index The index of the artwork to retrieve (0 is first).
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Library_GetArtworkUrlLink_BK: function (sourceFileUrl, index, callback) {
+        this.Call(
+            'Library_GetArtworkUrlLink_BK',
+            { sourceFileUrl: sourceFileUrl, index: index },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves a thumbnail of the picture for a specific artist. The callback is passed a url that points to
+     * the image, which will be available until MusicBee is restarted, or the image is no longer available to MusicBee.
+     * Library_GetArtistPictureThumbLink_BK (string artistName, function (string) callback)
+     * @param {string} artistName The name of the artist for which to retrieve a thumb.
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Library_GetArtistPictureThumbLink_BK: function (artistName, callback) {
+        this.Call(
+            'Library_GetArtistPictureThumbLink_BK',
+            { artistName: artistName },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the location of a copy of the artwork of the current file/track (local to MusicBee).
+     * Note: causes MusicBee to create a temporary file with the artwork if none was present, or the artwork was
+     * embedded in the track. The callback is passed a url that points to the image, which will be available until
+     * MusicBee is restarted, or the image is no longer available to MusicBee.
+     * Note: use @see NowPlaying_GetArtwork instead when possible, to avoid unnecessary temporary file creation.
+     * NowPlaying_GetArtworkUrlLink_BK (function (string) callback)
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    NowPlaying_GetArtworkUrlLink_BK: function (callback) {
+        this.Call(
+            'NowPlaying_GetArtworkUrlLink_BK',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the location of a copy of the downloaded artwork dor the current file/track (local to MusicBee).
+     * The callback is passed a url that points to the image, which will be available until MusicBee is restarted,
+     * or the image is no longer available to MusicBee.
+     * Note: causes MusicBee to create a temporary file with the artwork if none was present.
+     * NowPlaying_GetDownloadedArtworkUrlLink_BK (function (string) callback)
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    NowPlaying_GetDownloadedArtworkUrlLink_BK: function (callback) {
+        this.Call(
+            'NowPlaying_GetDownloadedArtworkUrlLink_BK',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the location of a copy of a thumbnail of an artist picture for current file/track (local to MusicBee).
+     * Note: causes MusicBee to create a temporary file with the artwork if none was present. The callback is passed
+     * a url that points to the image, which will be available until MusicBee is restarted, or the image is no longer
+     * available to MusicBee.
+     * NowPlaying_GetArtistPictureThumbLink_BK (function (string) callback)
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    NowPlaying_GetArtistPictureThumbLink_BK: function (callback) {
+        this.Call(
+            'NowPlaying_GetArtistPictureThumbLink_BK',
+            {},
+            callback
+        )
+    },
+
+    /**
+     * Retrieves whether or not a specific file/track is in a specific playlist.
+     * Playlist_IsInList (string playlistUrl, string sourceFileUrl, function (boolean) callback)
+     * @param {string} playlistUrl The playlist to search.
+     * @param {string} sourceFileUrl The file/track to search for.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_IsInList: function (playlistUrl, sourceFileUrl, callback) {
+        this.Call(
+            'Playlist_IsInList',
+            { playlistUrl: playlistUrl, sourceFileUrl: sourceFileUrl },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the locations of pictures of a specific artist, either local (to MusicBee) or local and from the net.
+     * Note: retrieval of local files causes MusicBee to create a temporary file with the artwork if none was present.
+     * The callback is passed an array of urls that point to the images, which will be available until MusicBee is
+     * restarted, or the image is no longer available to MusicBee, for local images.
+     * @param {string} artistName The name of the artist for which to retrieve a thumb.
+     * @param {boolean} localOnly Whether to include only local images, or to include images from the net as well.
+     * @param {function(object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    Library_GetArtistPictureUrls: function (artistName, localOnly, callback) {
+        this.Call(
+            'Library_GetArtistPictureUrls',
+            { artistName: artistName, localOnly: localOnly },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the locations of pictures for the artist of the current file/track, either local (to MusicBee)
+     * or local and from the net.
+     * Note: retrieval of local files causes MusicBee to create a temporary file with the artwork if none was present.
+     * The callback is passed an array of urls that point to the images, which will be available until MusicBee is
+     * restarted, or the image is no longer available to MusicBee, for local images.
+     * @param {boolean} localOnly Whether to include only local images, or to include images from the net as well.
+     * @param {function(object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    NowPlaying_GetArtistPictureUrls: function (localOnly, callback) {
+        this.Call(
+            'NowPlaying_GetArtistPictureUrls',
+            { localOnly: localOnly },
+            callback
+        )
+    },
+
+    /**
+     * Appends a set of new sourceFileUrls to a playlist.
+     * @param {string} playlistUrl The location of the playlist to append to.
+     * @param {string[]} sourceFileUrls An array of locations to append to the playlist.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_AppendFiles: function (playlistUrl, sourceFileUrls, callback) {
+        this.Call(
+            'Playlist_AppendFiles',
+            { playlistUrl: playlistUrl, sourceFileUrls: sourceFileUrls },
+            callback
+        )
+    },
+
+    /**
+     * TODO function unknown, but works
+     * Sync_FileStart (string filename, function (string) callback)
+     * @param {string} filename
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
+     */
+    Sync_FileStart: function(filename, callback) {
+        this.Call(
+            'Sync_FileStart',
+            { filename: filename },
+            callback
+        )
+    },
+
+    /**
+     * TODO function unknown, but works
+     * Sync_FileEnd (string filename, boolean success, string errorMessage, function (string) callback)
+     * @param {string} filename
+     * @param {boolean} success
+     * @param {string} errorMessage
+     * @param {function (object)} callback Callback function for method, expecting a (void) JSON object
+     */
+    Sync_FileEnd: function(filename, success, errorMessage, callback) {
+        this.Call(
+            'Sync_FileEnd',
+            { filename: filename, success: success, errorMessage: errorMessage },
             callback
         )
     },
