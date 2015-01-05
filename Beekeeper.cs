@@ -411,6 +411,130 @@ namespace MusicBeePlugin
         }
 
         /// <summary>
+        /// SettingId_BK is used instead of Plugin.SettingBK by Setting_GetValue_BK, Setting_GetValues_BK and Setting_SetValues_BK.
+        /// </summary>
+        public enum SettingId_BK
+        {
+        // identical to SettingId
+            CompactPlayerFlickrEnabled = 1,
+            FileTaggingPreserveModificationTime = 2,
+            LastDownloadFolder = 3,
+            ArtistGenresOnly = 4,
+        // specific to Beekeeper
+            PersistentStoragePath = -1,
+            ReadOnly_BK = -2,
+            Share_BK = -3,
+            Version_BK = -4,
+            Skin = -5,
+            EqualizerEnabled = -6,
+            DspEnabled = -7,
+            ScrobbleEnabled = -8,
+            DefaultFontName_BK = -9,
+            ShowTimeRemaining = -10,
+            Crossfade = -11,
+            ReplayGainMode = -12,
+            ShowRatingTrack = -13,
+            ShowRatingLove = -14,
+            LastFmUserId = -15,
+            WebProxy = -16
+        }
+
+        public object GetSetting_BK(SettingId_BK settingId_BK)
+        {
+            object result = null;
+            switch (settingId_BK)
+            {
+                // setting ids specific to Beekeeper
+                case SettingId_BK.PersistentStoragePath:
+                    result = mbApiInterface.Setting_GetPersistentStoragePath();
+                    break;
+                case SettingId_BK.ReadOnly_BK:
+                    result = this.ReadOnly;
+                    break;
+                case SettingId_BK.Share_BK:
+                    result = this.Share;
+                    break;
+                case SettingId_BK.Version_BK:
+                    result = new int[3] { about.VersionMajor, about.VersionMinor, about.Revision };
+                    break;
+                case SettingId_BK.Skin:
+                    result = mbApiInterface.Setting_GetSkin();
+                    break;
+                case SettingId_BK.EqualizerEnabled:
+                    result = mbApiInterface.Player_GetEqualiserEnabled();
+                    break;
+                case SettingId_BK.DspEnabled:
+                    result = mbApiInterface.Player_GetDspEnabled();
+                    break;
+                case SettingId_BK.ScrobbleEnabled:
+                    result = mbApiInterface.Player_GetScrobbleEnabled();
+                    break;
+                case SettingId_BK.ShowTimeRemaining:
+                    result = mbApiInterface.Player_GetShowTimeRemaining();
+                    break;
+                case SettingId_BK.DefaultFontName_BK:
+                    result = mbApiInterface.Setting_GetDefaultFont().Name;
+                    break;
+                case SettingId_BK.Crossfade:
+                    result = mbApiInterface.Player_GetCrossfade();
+                    break;
+                case SettingId_BK.ReplayGainMode:
+                    result = mbApiInterface.Player_GetReplayGainMode();
+                    break;
+                case SettingId_BK.ShowRatingTrack:
+                    result = mbApiInterface.Player_GetShowRatingTrack();
+                    break;
+                case SettingId_BK.ShowRatingLove:
+                    result = mbApiInterface.Player_GetShowRatingLove();
+                    break;
+                case SettingId_BK.LastFmUserId:
+                    result = mbApiInterface.Setting_GetLastFmUserId();
+                    break;
+                case SettingId_BK.WebProxy:
+                    result = mbApiInterface.Setting_GetWebProxy();
+                    break;
+                default:
+                    // otherwise, it's the same as the basic function
+                    mbApiInterface.Setting_GetValue((Plugin.SettingId)settingId_BK, ref result);
+                    break;
+            }
+            return result;
+        }
+
+        public bool SetSetting_BK(SettingId_BK settingId_BK, object value)
+        {
+            switch (settingId_BK)
+            {
+                case SettingId_BK.PersistentStoragePath:
+                case SettingId_BK.ReadOnly_BK:
+                case SettingId_BK.Share_BK:
+                case SettingId_BK.Version_BK:
+                case SettingId_BK.Skin:
+                case SettingId_BK.ShowTimeRemaining:
+                case SettingId_BK.DefaultFontName_BK:
+                case SettingId_BK.ShowRatingTrack:
+                case SettingId_BK.ShowRatingLove:
+                case SettingId_BK.LastFmUserId:
+                case SettingId_BK.WebProxy:
+                    // cannot (yet) be set through API
+                    return false;
+                case SettingId_BK.EqualizerEnabled:
+                    return mbApiInterface.Player_SetEqualiserEnabled((bool)value);
+                case SettingId_BK.DspEnabled:
+                    return mbApiInterface.Player_SetDspEnabled((bool)value);
+                case SettingId_BK.ScrobbleEnabled:
+                    return mbApiInterface.Player_SetScrobbleEnabled((bool)value);
+                case SettingId_BK.Crossfade:
+                    return mbApiInterface.Player_SetCrossfade((bool)value);
+                case SettingId_BK.ReplayGainMode:
+                    return mbApiInterface.Player_SetReplayGainMode((Plugin.ReplayGainMode)value);
+                default:
+                    // otherwise, it's the same as the basic function - these are setting that cannot be changed
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// The event type for handling requests to call the API.
         /// </summary>
         /// <param name="response">The HTTPServerResponse on which the response should be sent.</param>
@@ -465,6 +589,7 @@ namespace MusicBeePlugin
             int height;
             int toIndex;
             int[] fromIndices;
+            int[] categories;
             float volume;
             double minimumArtistSimilarityRating;
             bool mute;
@@ -474,6 +599,7 @@ namespace MusicBeePlugin
             bool localOnly;
             bool success;
             bool cancelDownload;
+            object[] objects;
             DateTime updatedSince;
             SyncDelta syncDelta;
             List<string> playlist;
@@ -491,6 +617,8 @@ namespace MusicBeePlugin
             Plugin.PlayButtonType button;
             Plugin.DeviceIdType idType;
             Plugin.SettingId settingId;
+            SettingId_BK settingId_BK;
+            SettingId_BK[] settingIds_BK;
             Plugin.LibraryCategory category;
             Plugin.DownloadTarget target;
             // copy parameters to a case-insensitive comparer to deal with variation in parameter naming
@@ -1328,10 +1456,17 @@ namespace MusicBeePlugin
                         result = mbApiInterface.Library_GetDevicePersistentId(sourceFileUrl, idType);
                         break;
                     case "Library_SetDevicePersistentId": // bool (string sourceFileUrl, DeviceIdType idType, string value)
-                        sourceFileUrl = (string)parameters["sourceFileUrl"];
-                        idType = (Plugin.DeviceIdType)parameters["idType"];
-                        value = (string)parameters["value"];
-                        result = mbApiInterface.Library_SetDevicePersistentId(sourceFileUrl, idType, value);
+                        if (!ReadOnly)
+                        {
+                            sourceFileUrl = (string)parameters["sourceFileUrl"];
+                            idType = (Plugin.DeviceIdType)parameters["idType"];
+                            value = (string)parameters["value"];
+                            result = mbApiInterface.Library_SetDevicePersistentId(sourceFileUrl, idType, value);
+                        } 
+                        else 
+                        {
+                            result = null;
+                        }
                         break;
                     case "Library_FindDevicePersistentId": // string[] (DeviceIdType idType, string[] ids)
                         idType = (Plugin.DeviceIdType)parameters["idType"];
@@ -1345,10 +1480,59 @@ namespace MusicBeePlugin
                         settingId = (Plugin.SettingId)parameters["settingId"];
                         mbApiInterface.Setting_GetValue(settingId, ref result);
                         break;
+            // unique to Beekeeper, not canon, adds other MusicBee settings to the repertoire of Setting_Value
+                    case "Setting_GetValue_BK": // object (SettingId settingId)
+                        settingId_BK = (SettingId_BK)parameters["settingId"];
+                        result = GetSetting_BK (settingId_BK);
+                        break;
+            // unique to Beekeeper, not canon, allows retrieval of multiple settings at once
+                    case "Setting_GetValues_BK": // object[] (SettingId_BK[] settingIds)
+                        settingIds_BK = ((System.Collections.ArrayList)parameters["settingIds"]).Cast<SettingId_BK>().ToArray();
+                        objects = new object[settingIds_BK.Length];
+                        for (int i = 0; i < settingIds_BK.Length; i++)
+                        {
+                            objects[i] = GetSetting_BK(settingIds_BK[i]);
+                        }
+                        result = objects;
+                        break;
+            // unique to Beekeeper, not canon, adds other MusicBee settings to the repertoire of Setting_Value
+                    case "Setting_SetValue_BK": // object (SettingId settingId, object value)
+                        settingId_BK = (SettingId_BK)parameters["settingId"];
+                        result = SetSetting_BK(settingId_BK, (object)parameters["value"]);
+                        break;
+            // unique to Beekeeper, not canon, allows modification of multiple settings at once
+                    case "Setting_SetValues_BK": // bool (SettingId_BK[] settingIds, object[] values)
+                        settingIds_BK = ((System.Collections.ArrayList)parameters["settingIds"]).Cast<SettingId_BK>().ToArray();
+                        objects = ((System.Collections.ArrayList)parameters["values"]).Cast<object>().ToArray();
+                        if (settingIds_BK.Length != objects.Length)
+                        {
+                            result = false;
+                        }
+                        else
+                        {
+                            success = true;
+                            for (int i = 0; i < settingIds_BK.Length; i++)
+                            {
+                                success = success && SetSetting_BK(settingIds_BK[i], objects[i]);
+                            }
+                            result = success;
+                        }
+                        break;
                     case "Library_AddFileToLibrary": // string (string sourceFileUrl, LibraryCategory category)
-                        sourceFileUrl = (string)parameters["sourceFileUrl"];
-                        category = (Plugin.LibraryCategory)parameters["category"];
-                        result = mbApiInterface.Library_AddFileToLibrary(sourceFileUrl, category);
+                        throw new Exception("Library_AddFileToLibrary is meaningless or impractical in web context. Use Library_AddFileToLibrary_BK.");
+             // Unique to Beekeeper, replaces Library_AddFileToLibrary for web API
+                    case "Library_AddFileToLibrary_BK": // string (string sourceFileUrl, LibraryCategory category)
+                        if (!ReadOnly)
+                        {
+                            sourceFileUrl = (string)parameters["sourceFileUrl"];
+                            categories = ((System.Collections.ArrayList)parameters["categories"]).Cast<int>().ToArray();
+                            category = (Plugin.LibraryCategory)categories.Sum();
+                            result = mbApiInterface.Library_AddFileToLibrary(sourceFileUrl, category);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
                     case "Playlist_DeletePlaylist": // bool (string playlistUrl)
                         playlistUrl = (string)parameters["playlistUrl"];

@@ -1150,14 +1150,84 @@
             }
             $("#link_NowPlaying_GetSoundtrackPictureUrls").click(run_NowPlaying_GetSoundtrackPictureUrls);
 
+            var someId;
             Beekeeper.Library_GetDevicePersistentId(
                     trackUrl,
                     Beekeeper.DeviceIdType.GooglePlay,
-                    function(data){ $("#target_Library_GetDevicePersistentId").html(
+                    function(data){
+                        someId = data;
+                        $("#target_Library_GetDevicePersistentId").html(
                             (data===null)?'getting track id failed, no device?':
                                     (data.error?'error: '+data.error:data)
                     ); }
             );
+
+            Beekeeper.Library_SetDevicePersistentId(
+                    trackUrl,
+                    Beekeeper.DeviceIdType.GooglePlay,
+                    someId,
+                    function(data){ $("#target_Library_SetDevicePersistentId").html(
+                            (data===null)?'setting track id failed, no device?':
+                                    (data.error?'error: '+data.error:
+                                            (data?'track id set':'track id not set'))
+                    ); }
+            );
+
+            Beekeeper.Library_FindDevicePersistentId(
+                    Beekeeper.DeviceIdType.GooglePlay,
+                    [someId],
+                    function(data){ $("#target_Library_FindDevicePersistentId").html(
+                            (data===null)?'finding persistent ids failed, no device?':
+                                    (data.error?'error: '+data.error:data.join('; '))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetValue(
+                    Beekeeper.SettingId.CompactPlayerFlickrEnabled,
+                    function(data){ $("#target_Setting_GetValue").html(
+                            (data===null)?'problem retrieving setting':
+                                    (data.error?'error: '+data.error:
+                                            (data?'compact player Flickr is enabled':'compact player Flickr not enabled'))
+                    ); }
+            )
+
+            Beekeeper.Setting_GetValue_BK(
+                    Beekeeper.SettingId_BK.LastFmUserId,
+                    function(data){ $("#target_Setting_GetValue_BK").html(
+                            (data===null)?'problem retrieving setting':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            )
+
+            Beekeeper.Setting_GetValues_BK(
+                    [Beekeeper.SettingId_BK.LastFmUserId, Beekeeper.SettingId_BK.Version_BK],
+                    function(data){ $("#target_Setting_GetValues_BK").html(
+                            (data===null)?'problem retrieving setting':
+                                    (data.error?'error: '+data.error:data.join(';'))
+                    ); }
+            )
+
+            Beekeeper.Setting_SetValue_BK(
+                    Beekeeper.SettingId_BK.EqualizerEnabled,
+                    false,
+                    function(data){ $("#target_Setting_SetValue_BK").html(
+                            (data===null)?'problem changing setting':
+                                    (data.error?'error: '+data.error:
+                                            (data?'setting changed':'setting not changed'))
+                    ); }
+            )
+
+            Beekeeper.Setting_SetValues_BK(
+                    [Beekeeper.SettingId_BK.EqualizerEnabled, Beekeeper.SettingId_BK.DspEnabled],
+                    [false, false],
+                    function(data){ $("#target_Setting_SetValues_BK").html(
+                            (data===null)?'problem changing setting':
+                                    (data.error?'error: '+data.error:
+                                            (data?'settings changed':'settings not changed (some or all)'))
+                    ); }
+            )
+
+            Beekeeper.Library_AddFileToLibrary
 
             /*
                        function run_TestRun() {
@@ -1324,6 +1394,13 @@
         <tr><td><a href="javascript:" id="link_NowPlaying_IsSoundtrack">NowPlaying_IsSoundtrack</a>: </td><td id="target_NowPlaying_IsSoundtrack">[result]</td></tr>
         <tr><td><a href="javascript:" id="link_NowPlaying_GetSoundtrackPictureUrls">NowPlaying_GetSoundtrackPictureUrls</a>: </td><td id="target_NowPlaying_GetSoundtrackPictureUrls">[result]</td></tr>
         <tr><td>Library_GetDevicePersistentId: </td><td id="target_Library_GetDevicePersistentId">[result]</td></tr>
+        <tr><td>Library_SetDevicePersistentId: </td><td id="target_Library_SetDevicePersistentId">[result]</td></tr>
+        <tr><td>Library_FindDevicePersistentId: </td><td id="target_Library_FindDevicePersistentId">[result]</td></tr>
+        <tr><td>Setting_GetValue: </td><td id="target_Setting_GetValue">[result]</td></tr>
+        <tr><td>Setting_GetValue_BK: </td><td id="target_Setting_GetValue_BK">[result]</td></tr>
+        <tr><td>Setting_GetValues_BK: </td><td id="target_Setting_GetValues_BK">[result]</td></tr>
+        <tr><td>Setting_SetValue_BK: </td><td id="target_Setting_SetValue_BK">[result]</td></tr>
+        <tr><td>Setting_SetValues_BK: </td><td id="target_Setting_SetValues_BK">[result]</td></tr>
 
 
         <tr><td><a href="javascript:" id="link_TestRun">Playlist_TestRun</a>: </td><td id="target_TestRun">[result]</td></tr>

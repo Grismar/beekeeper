@@ -244,6 +244,51 @@ var Beekeeper = {
     },
 
     /**
+     * @static {int} SettingId
+     */
+    SettingId: {
+        CompactPlayerFlickrEnabled: 1,
+        FileTaggingPreserveModificationTime: 2,
+        LastDownloadFolder: 3,
+        ArtistGenresOnly: 4
+    },
+
+    /**
+     * @static {int} SettingId_BK
+     */
+    SettingId_BK: {
+    // identical to SettingId:
+        CompactPlayerFlickrEnabled: 1,
+        FileTaggingPreserveModificationTime: 2,
+        LastDownloadFolder: 3,
+        ArtistGenresOnly: 4,
+    // specific to Beekeeper:
+        PersistentStoragePath: -1,
+        ReadOnly_BK: -2,
+        Share_BK: -3,
+        Version_BK: -4,
+        Skin: -5,
+        EqualizerEnabled: -6,
+        DspEnabled: -7,
+        ScrobbleEnabled: -8,
+        DefaultFontName_BK: -9,
+        ShowTimeRemaining: -10,
+        Crossfade: -11,
+        ReplayGainMode: -12,
+        ShowRatingTrack: -13,
+        ShowRatingLove: -14,
+        LastFmUserId: -15,
+        WebProxy: -16
+    },
+
+    LibraryCategory_BK: {
+        Music: 0,
+        Audiobook: 1,
+        Video: 2,
+        Inbox: 4
+    },
+
+    /**
      * @static {string} basePath
      */
     basePath: "/",
@@ -2079,11 +2124,12 @@ var Beekeeper = {
     },
 
     /**
-     * Retrieves the persistent id for a specific file/track on a specific device type.
+     * Retrieves the persistent id for a specific file/track on a specific device type. The callback is passed the id
+     * as a string, or null if no device can be found.
      * Library_GetDevicePersistentId (string sourceFileUrl, idType, function(string) callback)
      * @param {string} sourceFileUrl Path to music file in database
      * @param {int} idType The devicetype for which to retrieve the persistent id.
-     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
     Library_GetDevicePersistentId: function(sourceFileUrl, idType, callback) {
         this.Call(
@@ -2093,7 +2139,131 @@ var Beekeeper = {
         )
     },
 
-    /** 
+    /**
+     * Assigns the persistent id for a specific file/track on a specific device type. The callback is passed the
+     * success, or null if no device can be found.
+     * Note: won't work if 'read only' is set in Beekeeper settings, passing null to callback.
+     * Library_SetDevicePersistentId (string sourceFileUrl, DeviceIdType idType, string value, function(string) callback)
+     * @param {string} sourceFileUrl Path to music file in database
+     * @param {int} idType The DeviceIdType for which to retrieve the persistent id.
+     * @param {string} value The new value for the persistent id.
+     * @param {function (object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Library_SetDevicePersistentId: function(sourceFileUrl, idType, value, callback) {
+        this.Call(
+            'Library_GetDevicePersistentId',
+            { sourceFileUrl: sourceFileUrl, idType: idType, value: value },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves a set of tracks for a given set of persistent device id's of a given device type. The callback is
+     * passed an array of locations.
+     * Library_FindDevicePersistentId (int idType, string[] ids, function(string[]) callback)
+     * @param {int} idType The DeviceIdType of the device to use.
+     * @param {string[]} ids The persistent ids of the tracks.
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    Library_FindDevicePersistentId: function(idType, ids, callback) {
+        this.Call(
+            'Library_FindDevicePersistentId',
+            { idType: idType, ids: ids },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves the value for a given MusicBee setting.
+     * Note: not all settings can be accessed using this function. Use @see Setting_GetValue_BK for all settings.
+     * @param {int} settingId The SettingId of the setting that needs to be retrieved.
+     * @param {function(object)} callback Callback function for method, expecting a (object) JSON object
+     */
+    Setting_GetValue: function (settingId, callback) {
+        this.Call(
+            'Setting_GetValue',
+            { settingId: settingId },
+            callback
+        )
+    },
+
+    /**
+     * Same as @see Setting_GetValue but includes additional setting types in SettingId_BK.
+     * Setting_GetValue_BK (SettingId_BK settingId, function(object[]) callback)
+     * @param {int} settingId The SettingId of the setting that needs to be retrieved.
+     * @param {function(object)} callback Callback function for method, expecting a (object) JSON object
+     */
+    Setting_GetValue_BK: function (settingId, callback) {
+        this.Call(
+            'Setting_GetValue_BK',
+            { settingId: settingId },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves multiple values for give MusicBee settings. (see@ Setting_GetValue_BK) Results are passed to the
+     * callback function as an array of objects.
+     * Setting_GetValues_BK (SettingId_BK[] settingIds, function(object[]) callback)
+     * @param {int[]} settingIds And array of SettingId for the settings that needs to be retrieved.
+     * @param {function(object)} callback Callback function for method, expecting a (object[]) JSON object
+     */
+    Setting_GetValues_BK: function (settingIds, callback) {
+        this.Call(
+            'Setting_GetValues_BK',
+            { settingIds: settingIds },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to modify a given setting.
+     * Setting_SetValue_BK (SettingId_BK settingId, object value, function(boolean) callback)
+     * @param {int} settingId The SettingId_BK of the setting that needs to be modified.
+     * @param {object} value The new value for the setting.
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Setting_SetValue_BK: function (settingId, value, callback) {
+        this.Call(
+            'Setting_SetValue_BK',
+            { settingId: settingId, value: value },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to modify multiple settings. (see@ Setting_SetValue_BK)
+     * Setting_SetValues_BK (SettingId_BK[] settingIds, object[] values, function(boolean) callback)
+     * @param {int[]} settingIds An array of SettingId_BK for the settings that needs to be retrieved.
+     * @param {object[]} values The new values for the settings, in the same order as settingIds.
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Setting_SetValues_BK: function (settingIds, values, callback) {
+        this.Call(
+            'Setting_SetValues_BK',
+            { settingIds: settingIds, values: values },
+            callback
+        )
+    },
+
+    /**
+     * Causes MusicBee to add a new file/track by location (local to MusicBee) to the library.
+     * Note: the location has to be local to MusicBee, that is MusicBee needs to be able to access the file on the
+     * exact same location. This library or the web client does not need to be able to access it.
+     * Library_AddFileToLibrary_BK (string sourceFileUrl, LibraryCategory_BK[] categories, function(boolean) callback)
+     * @param {string} sourceFileUrl Location of the file/track to add, local to MusicBee.
+     * @param {int} categories Array of LibraryCategory_BK categories to add the file/track to.
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Library_AddFileToLibrary_BK: function (sourceFileUrl, categories, callback) {
+        this.Call(
+            'Library_AddFileToLibrary_BK',
+            { sourceFileUrl: sourceFileUrl, category: categories },
+            callback
+        )
+    },
+
+    /**
      * Retrieves a set of metadata fields (tags) for the given source file. Array of tags is reported to callback.
      * Library_GetFileTags (string aSourceFileUrl, MetaDataType[] aFields, function (string[] output) callback)
      * @param {string} aSourceFileUrl Path to music file in database
