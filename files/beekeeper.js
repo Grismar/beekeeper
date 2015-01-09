@@ -288,6 +288,12 @@ var Beekeeper = {
         Inbox: 4
     },
 
+    DownloadTarget: {
+        Inbox: 0,
+        MusicLibrary: 1,
+        SpecificFolder: 3
+    },
+
     /**
      * @static {string} basePath
      */
@@ -2264,24 +2270,98 @@ var Beekeeper = {
     },
 
     /**
+     * Causes MusicBee to delete a specific playlist.
+     * @param {string} playlistUrl Location of the playlist to delete (local to MusicBee).
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     */
+    Playlist_DeletePlaylist: function (playlistUrl, callback) {
+        this.Call (
+            'Playlist_DeletePlaylist',
+            { playlistUrl: playlistUrl },
+            callback
+        )
+    },
+
+    /**
+     * Retrieves changes to the MusicBee library since a specified date in a specified category.
+     * The callback is passed an object with attributes string[] newFiles, string[] updatedFiles and string[]
+     * deletedFiles; all of which are arrays with sourceFileUrl's (local to MusicBee).
+     * Library_GetSyncDelta (string[] cachedFiles, DateTime updatedSince, LibraryCategory_BK category,
+     *   function(object) callback)
+     * @param {string[]} cachedFiles TODO cachedFiles parameter function unknown, pass []
+     * @param {Date} updatedSince Start DateTime (through now) for which to return changes.
+     * @param {int} category LibraryCategory_BK of MusicBee library items for which to return changes.
+     * @param {function(object)} callback Callback function for method, expecting a (object) JSON object
+     */
+    Library_GetSyncDelta: function (cachedFiles, updatedSince, category, callback) {
+        this.Call (
+            'Library_GetSyncDelta',
+            { cachedFiles: cachedFiles, updatedSince: updatedSince, category: category },
+            callback
+        )
+    },
+
+    /**
      * Retrieves a set of metadata fields (tags) for the given source file. Array of tags is reported to callback.
-     * Library_GetFileTags (string aSourceFileUrl, MetaDataType[] aFields, function (string[] output) callback)
-     * @param {string} aSourceFileUrl Path to music file in database
-     * @param {int[]} aFields Names of fields to retrieve
+     * Library_GetFileTags (string sourceFileUrl, MetaDataType[] fields, function (string[] output) callback)
+     * @param {string} sourceFileUrl Path to music file in database
+     * @param {int[]} fields Names of fields to retrieve
      * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
      */
-    Library_GetFileTags: function(aSourceFileUrl, aFields, callback) {
+    Library_GetFileTags: function(sourceFileUrl, fields, callback) {
         this.Call(
             'Library_GetFileTags',
-            { sourceFileUrl : aSourceFileUrl, fields: aFields },
+            { sourceFileUrl : sourceFileUrl, fields: fields },
             callback
         );
     },
 
-    TestRun: function(playlistUrl, callback) {
+    /**
+     * Retrieves a set of metadata fields (tags) for the Now Playing file/track. Array of tags is reported to callback.
+     * NowPlaying_GetFileTags (MetaDataType[] fields, function (string[] output) callback)
+     * @param {int[]} fields Names of fields to retrieve
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    NowPlaying_GetFileTags: function(fields, callback) {
         this.Call(
-            'TestRun',
-            { playlistUrl: playlistUrl },
+            'NowPlaying_GetFileTags',
+            { fields: fields },
+            callback
+        );
+    },
+
+    /**
+     * Retrieves a set of metadata fields (tags) for a file/track in the Now Playing list. Array of tags is reported to
+     * callback.
+     * NowPlayingList_GetFileTags (int index, MetaDataType[] fields, function (string[] output) callback)
+     * @param {int} index Index of the track in the Now Playing list (0 is top item).
+     * @param {int[]} fields Names of fields to retrieve
+     * @param {function (object)} callback Callback function for method, expecting a (string[]) JSON object
+     */
+    NowPlayingList_GetFileTags: function(index, fields, callback) {
+        this.Call(
+            'NowPlayingList_GetFileTags',
+            { index: index, fields: fields },
+            callback
+        );
+    },
+
+    /**
+     * Causes MusicBee to start the download of a specific file, to a specified DownloadTarget in a specified
+     * targetFolder. Pass cancelDownload as true to stop a download started with MB_DownloadFile.
+     * MB_DownloadFile (string url, DownloadType target, string targetFolder, bool cancelDownload, function(bool)
+     *  callback)
+     * @param {string} url The location (from MusicBee perspective) of the file to download.
+     * @param {int} target The DownloadTarget to download to.
+     * @param {string} targetFolder The target folder in the download target to download to.
+     * @param {boolean} cancelDownload Whether to cancel the download (true) or initiate it (false).
+     * @param {function(object)} callback Callback function for method, expecting a (boolean) JSON object
+     * @constructor
+     */
+    MB_DownloadFile: function(url, target, targetFolder, cancelDownload, callback) {
+        this.Call(
+            'MB_DownloadFile',
+            { url: url, target: target, targetFolder: targetFolder, cancelDownload: cancelDownload },
             callback
         )
     }

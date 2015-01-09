@@ -126,6 +126,22 @@ namespace MusicBeePlugin
             }
         }
 
+        private bool _Download;
+        /// <summary>
+        /// The Download property locks and unlocks MB_DownloadFile, that allows downloads to arbitrary locations.
+        /// </summary>
+        public bool Download
+        {
+            get
+            {
+                return this._Download;
+            }
+            set
+            {
+                this._Download = value;
+            }
+        }
+
         /// <summary>
         /// MusicBeeEvent instances are stored in the events Queues of sessions by calls to EnqueueEvent.
         /// </summary>
@@ -436,7 +452,8 @@ namespace MusicBeePlugin
             ShowRatingTrack = -13,
             ShowRatingLove = -14,
             LastFmUserId = -15,
-            WebProxy = -16
+            WebProxy = -16,
+            Download_BK = -17
         }
 
         public object GetSetting_BK(SettingId_BK settingId_BK)
@@ -516,6 +533,7 @@ namespace MusicBeePlugin
                 case SettingId_BK.ShowRatingLove:
                 case SettingId_BK.LastFmUserId:
                 case SettingId_BK.WebProxy:
+                case SettingId_BK.Download_BK:
                     // cannot (yet) be set through API
                     return false;
                 case SettingId_BK.EqualizerEnabled:
@@ -635,6 +653,10 @@ namespace MusicBeePlugin
                     // not canon, retrieves Beekeeper specific setting
                     case "Setting_GetReadOnly_BK": // boolean ()
                         result = ReadOnly;
+                        break;
+                    // not canon, retrieves Beekeeper specific setting
+                    case "Setting_GetDownload_BK": // boolean ()
+                        result = Download;
                         break;
                     // not canon, retrieves Beekeeper specific setting
                     case "Setting_GetShare_BK": // boolean ()
@@ -1520,7 +1542,7 @@ namespace MusicBeePlugin
                         break;
                     case "Library_AddFileToLibrary": // string (string sourceFileUrl, LibraryCategory category)
                         throw new Exception("Library_AddFileToLibrary is meaningless or impractical in web context. Use Library_AddFileToLibrary_BK.");
-             // Unique to Beekeeper, replaces Library_AddFileToLibrary for web API
+             // Unique to Beekeeper, replaces Library_AddFileToLibrary for web API to deal with 'flags' type
                     case "Library_AddFileToLibrary_BK": // string (string sourceFileUrl, LibraryCategory category)
                         if (!ReadOnly)
                         {
@@ -1535,13 +1557,21 @@ namespace MusicBeePlugin
                         }
                         break;
                     case "Playlist_DeletePlaylist": // bool (string playlistUrl)
-                        playlistUrl = (string)parameters["playlistUrl"];
-                        result = mbApiInterface.Playlist_DeletePlaylist(playlistUrl);
+                        if (!ReadOnly)
+                        {
+                            playlistUrl = (string)parameters["playlistUrl"];
+                            result = mbApiInterface.Playlist_DeletePlaylist(playlistUrl);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
                     case "Library_GetSyncDelta": // SyncDelta (string[] cachedFiles, DateTime updatedSince, LibraryCategory category)
                         // cast the arraylist explictly to string and convert to an array
                         cachedFiles = ((System.Collections.ArrayList)parameters["cachedFiles"]).Cast<string>().ToArray();
-                        updatedSince = (DateTime)parameters["updatedSince"];
+                        // convert incoming string to date
+                        updatedSince = Convert.ToDateTime(parameters["updatedSince"]);
                         category = (Plugin.LibraryCategory)parameters["category"];
                         syncDelta = new SyncDelta();
                         syncDelta.newFiles = new string[0];
@@ -1575,12 +1605,19 @@ namespace MusicBeePlugin
             // api version 43
                     case "MB_AddTreeNode": // ()
                         throw new Exception("MB_AddTreeNode is meaningless or impractical in web context. No replacement available.");
-                    case "MB_DownloadFile": // ()
-                        url = (string)parameters["url"];
-                        target = (Plugin.DownloadTarget)parameters["target"];
-                        targetFolder = (string)parameters["targetFolder"];
-                        cancelDownload = (bool)parameters["cancelDownload"];
-                        mbApiInterface.MB_DownloadFile(url, target, targetFolder, cancelDownload);
+                    case "MB_DownloadFile": // bool (string url, DownloadTarget target, string targetFolder, bool cancelDownload )
+                        if (Download)
+                        {
+                            url = (string)parameters["url"];
+                            target = (Plugin.DownloadTarget)parameters["target"];
+                            targetFolder = (string)parameters["targetFolder"];
+                            cancelDownload = (bool)parameters["cancelDownload"];
+                            result = mbApiInterface.MB_DownloadFile(url, target, targetFolder, cancelDownload);
+                        }
+                        else
+                        {
+                            result = null;
+                        }
                         break;
                     default:
                         // no response, report failure
@@ -1903,6 +1940,7 @@ namespace MusicBeePlugin
                 this._Port = value;
             }
         }
+
         // property run with default, getter and setter
         private Boolean _Run = true;
         public Boolean Run
@@ -1916,7 +1954,8 @@ namespace MusicBeePlugin
                 this._Run = value;
             }
         }
-        // property run with default, getter and setter
+
+        // property share with default, getter and setter
         private Boolean _Share = true;
         public Boolean Share
         {
@@ -1929,7 +1968,8 @@ namespace MusicBeePlugin
                 this._Share = value;
             }
         }
-        // property run with default, getter and setter
+
+        // property readonly with default, getter and setter
         private Boolean _ReadOnly = true;
         public Boolean ReadOnly
         {
@@ -1940,6 +1980,20 @@ namespace MusicBeePlugin
             set
             {
                 this._ReadOnly = value;
+            }
+        }
+
+        // property run download default, getter and setter
+        private Boolean _Download = false;
+        public Boolean Download
+        {
+            get
+            {
+                return this._Download;
+            }
+            set
+            {
+                this._Download = value;
             }
         }
 
@@ -1954,6 +2008,7 @@ namespace MusicBeePlugin
                     this._Run = Convert.ToBoolean(sr.ReadLine());
                     this._Share = Convert.ToBoolean(sr.ReadLine());
                     this._ReadOnly = Convert.ToBoolean(sr.ReadLine());
+                    this._Download = Convert.ToBoolean(sr.ReadLine());
                     sr.Close();
                 }
             }
@@ -1971,6 +2026,7 @@ namespace MusicBeePlugin
                 sw.WriteLine(Convert.ToString(this._Run));
                 sw.WriteLine(Convert.ToString(this._Share));
                 sw.WriteLine(Convert.ToString(this._ReadOnly));
+                sw.WriteLine(Convert.ToString(this._Download));
                 sw.Close();
             }
         }
@@ -1987,6 +2043,9 @@ namespace MusicBeePlugin
         {
             mbApiInterface = (MusicBeeApiInterface)Marshal.PtrToStructure(apiInterfacePtr, typeof(MusicBeeApiInterface));
 
+            // load settings or set defaults
+            settings = new PluginSettings(mbApiInterface.Setting_GetPersistentStoragePath());
+
             about.PluginInfoVersion = PluginInfoVersion;
             about.Name = "Beekeeper";
             about.Description = "MusicBee web service for Beekeeper for Android.";
@@ -1999,10 +2058,9 @@ namespace MusicBeePlugin
             about.MinInterfaceVersion = MinInterfaceVersion;
             about.MinApiRevision = MinApiRevision;
             about.ReceiveNotifications = (ReceiveNotificationFlags.PlayerEvents | ReceiveNotificationFlags.TagEvents);
-            about.ConfigurationPanelHeight = 85;  // not implemented yet: height in pixels that musicbee should reserve in a panel for config settings. When set, a handle to an empty panel will be passed to the Configure function
+            // reserve space for 5 text controls and a few pixel to spare
+            about.ConfigurationPanelHeight = TextRenderer.MeasureText("88888", mbApiInterface.Setting_GetDefaultFont()).Height * 5 + 10;  
 
-            // load settings or set defaults
-            settings = new PluginSettings(mbApiInterface.Setting_GetPersistentStoragePath());
             // create a beekeeper server
             beekeeperServer = new BeekeeperServer(apiInterfacePtr);
             beekeeperServer.about = about;
@@ -2061,6 +2119,15 @@ namespace MusicBeePlugin
             settings.ReadOnly = beekeeperServer.ReadOnly;
         }
 
+        // event handler for dealing with enabling file serving as result of changing the Download checkbox
+        private void checkBoxDownload_CheckedChanged(object sender, EventArgs e)
+        {
+            beekeeperServer.Download = ((CheckBox)sender).Checked;
+            // set the checkbox and settings value to match actual server state
+            ((CheckBox)sender).Checked = beekeeperServer.Download;
+            settings.Download = beekeeperServer.Download;
+        }
+
         public bool Configure(IntPtr panelHandle)
         {
             // panelHandle will only be set if about.ConfigurationPanelHeight is set to a non-zero value
@@ -2094,9 +2161,14 @@ namespace MusicBeePlugin
                 checkBoxReadOnly.Checked = beekeeperServer.ReadOnly;
                 checkBoxReadOnly.Text = "Don't allow web API calls to modify MusicBee database (read only)";
                 checkBoxReadOnly.Bounds = new Rectangle(0, textBox.Height + checkBoxRunning.Height + checkBoxShare.Height + 5, TextRenderer.MeasureText(checkBoxReadOnly.Text, configPanel.Font).Width + 40, textBox.Height + 5);
-                checkBoxShare.CheckedChanged += checkBoxReadOnly_CheckedChanged;
-                configPanel.Controls.AddRange(new Control[] { prompt, textBox, checkBoxRunning, checkBoxShare, checkBoxReadOnly });
-                configPanel.Height = textBox.Height + checkBoxRunning.Height + checkBoxShare.Height + checkBoxReadOnly.Height + 10;
+                checkBoxReadOnly.CheckedChanged += checkBoxReadOnly_CheckedChanged;
+                CheckBox checkBoxDownload = new CheckBox();
+                checkBoxDownload.Checked = beekeeperServer.Download;
+                checkBoxDownload.Text = "Allow direct download to database or any local folder (download)";
+                checkBoxDownload.Bounds = new Rectangle(0, textBox.Height + checkBoxRunning.Height + checkBoxShare.Height + checkBoxReadOnly.Height + 5, TextRenderer.MeasureText(checkBoxDownload.Text, configPanel.Font).Width + 40, textBox.Height +5);
+                checkBoxDownload.CheckedChanged += checkBoxDownload_CheckedChanged;
+                configPanel.Controls.AddRange(new Control[] { prompt, textBox, checkBoxRunning, checkBoxShare, checkBoxReadOnly, checkBoxDownload });
+                configPanel.Height = textBox.Height + checkBoxRunning.Height + checkBoxShare.Height + checkBoxReadOnly.Height + checkBoxDownload.Height + 10;
             }
             return false;
         }
@@ -2131,7 +2203,10 @@ namespace MusicBeePlugin
                     // start server
                     try
                     {
+                        // apply settings
                         beekeeperServer.Share = settings.Share;
+                        beekeeperServer.ReadOnly = settings.ReadOnly;
+                        beekeeperServer.Download = settings.Download;
                         // if the server should run according to settings
                         if (settings.Run)
                         {

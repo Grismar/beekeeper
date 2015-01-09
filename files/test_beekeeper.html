@@ -39,8 +39,6 @@
             var queryFiles;
             var queryPlaylists;
 
-            // TODO remove trackUrl = "M:\\MP3 (high quality, not owned)\\Adorable - Against Perfection\\01 - Glorious.mp3";
-
             Beekeeper.Setting_GetPersistentStoragePath(
                     function(data){ $("#target_Setting_GetPersistentStoragePath").html( data ); }
             );
@@ -746,7 +744,7 @@
 
             function run_Playlist_SetFiles() {
                 if (createdPlayList==null) {
-                    alert ('Create the playlist first!')
+                    alert ('Create the playlist first with Playlist_CreatePlaylist!')
                 } else {
                     Beekeeper.Playlist_SetFiles(
                             createdPlayList,
@@ -832,7 +830,7 @@
 
             function run_Playlist_RemoveAt () {
                 if (createdPlayList==null) {
-                    alert ('Create the playlist first!')
+                    alert ('Create the playlist first with Playlist_CreatePlaylist!')
                 } else {
                     Beekeeper.Playlist_RemoveAt(
                             createdPlayList,
@@ -870,12 +868,6 @@
                 );
             }
             $("#link_Library_GetArtistPictureLink_BK").click(run_Library_GetArtistPictureLink_BK);
-
-            Beekeeper.Library_GetFileTags(
-                    trackUrl,
-                    [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
-                    function(data){ $("#target_Library_GetFileTags").html( data ); }
-            );
 
             function run_Pending_GetFileUrl() {
                 Beekeeper.Pending_GetFileUrl(
@@ -1189,7 +1181,7 @@
                                     (data.error?'error: '+data.error:
                                             (data?'compact player Flickr is enabled':'compact player Flickr not enabled'))
                     ); }
-            )
+            );
 
             Beekeeper.Setting_GetValue_BK(
                     Beekeeper.SettingId_BK.LastFmUserId,
@@ -1197,7 +1189,7 @@
                             (data===null)?'problem retrieving setting':
                                     (data.error?'error: '+data.error:data)
                     ); }
-            )
+            );
 
             Beekeeper.Setting_GetValues_BK(
                     [Beekeeper.SettingId_BK.LastFmUserId, Beekeeper.SettingId_BK.Version_BK],
@@ -1205,7 +1197,7 @@
                             (data===null)?'problem retrieving setting':
                                     (data.error?'error: '+data.error:data.join(';'))
                     ); }
-            )
+            );
 
             Beekeeper.Setting_SetValue_BK(
                     Beekeeper.SettingId_BK.EqualizerEnabled,
@@ -1215,7 +1207,7 @@
                                     (data.error?'error: '+data.error:
                                             (data?'setting changed':'setting not changed'))
                     ); }
-            )
+            );
 
             Beekeeper.Setting_SetValues_BK(
                     [Beekeeper.SettingId_BK.EqualizerEnabled, Beekeeper.SettingId_BK.DspEnabled],
@@ -1225,51 +1217,76 @@
                                     (data.error?'error: '+data.error:
                                             (data?'settings changed':'settings not changed (some or all)'))
                     ); }
-            )
+            );
 
-            Beekeeper.Library_AddFileToLibrary
-
-            /*
-                       function run_TestRun() {
-                           // reset any previous results
-                           queryFiles = '';
-                           Beekeeper.NowPlayingList_QueryFiles(
-                                   '<SmartPlaylist />',
-                                   function(data){
-                                       $("#target_TestRun").html(
-                                               (data&&!data.error)?'query returned results':'query returned no results '+
-                                                       (data.error?data.error:'')
-                                       );
-                                       // start collecting results
-                                       Beekeeper.NowPlayingList_QueryGetNextFile(
-                                               process_TestRun
-                                       );
-                                   }
-                           );
-
-                           Beekeeper.TestRun(
-                                   playlistUrl,
-                                   function(data){ $("#target_TestRun").html( data?'yes':'no' ); }
-                           );
-                       }
-                       $("#link_TestRun").click(run_TestRun);
-            */
-
-            function process_TestRun(data) {
-                if (data!=null) {
-                    queryFiles += data + '</br>';
-                    // chain to the next item
-                    Beekeeper.NowPlayingList_QueryGetNextFile(
-                            process_TestRun
-                    );
+            function run_Playlist_DeletePlaylist() {
+                if (createdPlayList==null) {
+                    alert ('Create the playlist first with Playlist_CreatePlaylist!')
                 } else {
-                    if (queryFiles=='') {
-                        $("#target_TestRun").html( 'no results from TestRun ');
-                    } else {
-                        $("#target_TestRun").html( queryFiles );
-                    }
+                    Beekeeper.Playlist_DeletePlaylist(
+                            createdPlayList,
+                            function(data){ $("#target_Playlist_DeletePlaylist").html(
+                                    (data===null)?'unable to delete playlist, read only?':
+                                            (data.error?'error: '+data.error:
+                                                    (data?'playlist deleted':'playlist not deleted'))
+                            ); }
+                    );
                 }
             }
+            $("#link_Playlist_DeletePlaylist").click(run_Playlist_DeletePlaylist);
+
+            function run_Library_GetSyncDelta() {
+                Beekeeper.Library_GetSyncDelta(
+                        [],
+                        new Date(2013,1,1,0,0,0,0),
+                        Beekeeper.LibraryCategory_BK.Music,
+                        function(data){ $("#target_Library_GetSyncDelta").html(
+                                (data===null)?'problem getting sync delta':
+                                        (data.error?'error: '+data.error:
+                                                (JSON.stringify(data)))
+                        ); }
+                );
+            }
+            $("#link_Library_GetSyncDelta").click(run_Library_GetSyncDelta);
+
+            Beekeeper.Library_GetFileTags(
+                    trackUrl,
+                    [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
+                    function(data){ $("#target_Library_GetFileTags").html( data ); }
+            );
+
+            function run_NowPlaying_GetFileTags() {
+                Beekeeper.NowPlaying_GetFileTags(
+                        [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
+                        function(data){ $("#target_NowPlaying_GetFileTags").html( data ); }
+                );
+            }
+            $("#link_NowPlaying_GetFileTags").click(run_NowPlaying_GetFileTags);
+
+            function run_NowPlayingList_GetFileTags() {
+                Beekeeper.NowPlayingList_GetFileTags(
+                        0, // top item
+                        [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
+                        function(data){ $("#target_NowPlayingList_GetFileTags").html( data ); }
+                );
+            }
+            $("#link_NowPlayingList_GetFileTags").click(run_NowPlayingList_GetFileTags);
+
+            function run_MB_DownloadFile() {
+                Beekeeper.MB_DownloadFile(
+                        'http://www.noiseaddicts.com/samples/3739.mp3', // some 'music' file
+                        Beekeeper.DownloadTarget.SpecificFolder,
+                        'E:\\0000',
+                        false,
+                        function(data){ $("#target_MB_DownloadFile").html(
+                                (data===null)?'problem downloading file, download not allowed in settings?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'download started':'download not started'))
+                        ); }
+                );
+            }
+            $("#link_MB_DownloadFile").click(run_MB_DownloadFile);
+
         });
     </script>
 </head>
@@ -1401,11 +1418,11 @@
         <tr><td>Setting_GetValues_BK: </td><td id="target_Setting_GetValues_BK">[result]</td></tr>
         <tr><td>Setting_SetValue_BK: </td><td id="target_Setting_SetValue_BK">[result]</td></tr>
         <tr><td>Setting_SetValues_BK: </td><td id="target_Setting_SetValues_BK">[result]</td></tr>
-
-
-        <tr><td><a href="javascript:" id="link_TestRun">Playlist_TestRun</a>: </td><td id="target_TestRun">[result]</td></tr>
-
+        <tr><td><a href="javascript:" id="link_Playlist_DeletePlaylist">Playlist_DeletePlaylist</a>: </td><td id="target_Playlist_DeletePlaylist">[result]</td></tr>
         <tr><td>Library_GetFileTags: </td><td id="target_Library_GetFileTags">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetFileTags">NowPlaying_GetFileTags</a>: </td><td id="target_NowPlaying_GetFileTags">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_GetFileTags">NowPlayingList_GetFileTags</a>: </td><td id="target_NowPlayingList_GetFileTags">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_MB_DownloadFile">MB_DownloadFile</a>: </td><td id="target_MB_DownloadFile">[result]</td></tr>
     </table>
 </body>
 </html>
